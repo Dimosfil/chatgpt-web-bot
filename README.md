@@ -19,3 +19,8 @@ taskkill /F /IM chrome.exe
 http://127.0.0.1:9222
 PS
 Invoke-WebRequest http://127.0.0.1:9222/json/version
+
+если блокировка политики дебага 
+chrome://policy/ - проверить DevToolsAvailability DeveloperToolsAvailability RemoteDebuggingAllowed
+Get-ItemProperty "HKLM:\Software\Policies\Google\Chrome" -ErrorAction SilentlyContinue
+Get-ItemProperty "HKCU:\Software\Policies\Google\Chrome" -ErrorAction SilentlyContinue
