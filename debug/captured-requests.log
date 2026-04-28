@@ -1,0 +1,16 @@
+=== capture-proxy STARTED at 2026-04-25T07:00:54.429Z ===
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ВРЕМЯ: 2026-04-25T07:10:31.280Z
+МЕТОД: POST
+URL:   /v1/chat/completions
+HEADERS:
+  content-type: application/json
+  authorization: Bearer chatgpt-web-proxy
+  content-length: 132
+  host: localhost:3999
+  connection: keep-alive
+BODY (109 bytes):
+{"model":"chatgpt-web","messages":[{"role":"user","content":"Привет, скажи коротко кто ты?"}],"stream":false}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[2026-04-25T07:10:31.283Z] → Ответ: JSON заглушка
