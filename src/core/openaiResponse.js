@@ -51,19 +51,73 @@ function completionWithToolCall(body, toolCall) {
 }
 
 function modelsList() {
+  const now = Math.floor(Date.now() / 1000);
   return {
     object: 'list',
-    data: [{
-      id: 'chatgpt-web',
-      object: 'model',
-      created: Math.floor(Date.now() / 1000),
-      owned_by: 'chatgpt-web-bot'
-    }]
+    data: [
+      {
+        id: 'chatgpt-web',
+        object: 'model',
+        created: now,
+        owned_by: 'chatgpt-web-bot'
+      }
+    ]
+  };
+}
+
+function responsesOutput(reqBody, text) {
+  return {
+    id: `resp_${Date.now()}`,
+    object: 'response',
+    created: Math.floor(Date.now() / 1000),
+    model: reqBody?.model || 'chatgpt-web',
+    status: 'completed',
+    output: [{
+      type: 'message',
+      role: 'assistant',
+      content: [{
+        type: 'output_text',
+        text: text || ''
+      }]
+    }],
+    usage: {
+      input_tokens: 0,
+      output_tokens: 0,
+      total_tokens: 0
+    }
+  };
+}
+
+function responsesOutputWithToolCall(reqBody, toolCall) {
+  const args = typeof toolCall.arguments === 'string'
+    ? toolCall.arguments
+    : JSON.stringify(toolCall.arguments || {});
+
+  return {
+    id: `resp_${Date.now()}`,
+    object: 'response',
+    created: Math.floor(Date.now() / 1000),
+    model: reqBody?.model || 'chatgpt-web',
+    status: 'completed',
+    output: [{
+      type: 'function_call',
+      id: toolCall.id || `call_${Date.now()}`,
+      call_id: toolCall.id || `call_${Date.now()}`,
+      name: toolCall.name,
+      arguments: args
+    }],
+    usage: {
+      input_tokens: 0,
+      output_tokens: 0,
+      total_tokens: 0
+    }
   };
 }
 
 module.exports = {
   completion,
   completionWithToolCall,
+  responsesOutput,
+  responsesOutputWithToolCall,
   modelsList
 };

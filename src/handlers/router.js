@@ -2,13 +2,15 @@ const { log } = require('../core/logger');
 const { readJsonBody } = require('../core/http');
 const { modelsList } = require('../core/openaiResponse');
 const { safeJson, jsonSize, writeBlock } = require('../core/safeJson');
-const { sendCompletionLogged, sendSimpleLogged, sendToolCallLogged } = require('./openaiWriter');
+const { sendSimpleLogged } = require('./responseHelpers');
+const { sendCompletionLogged, sendToolCallLogged } = require('./openaiWriter');
 const { buildPrompt } = require('../strategies/promptBuilder.cleanUserOnly');
 const { buildAgentPrompt } = require('../strategies/promptBuilder.agentToolMode');
 const { handleSpecialRequest } = require('../strategies/specialRequests.openclaw');
 const { ChatGptWebStrategy } = require('../strategies/llm.chatgptWeb');
 const { optimizeOpenClawRequest } = require('../strategies/openclawOptimizer');
 const { tryParseAgentReply } = require('../strategies/toolParser');
+const { handleCodexRequest } = require('./handleCodexRequest');
 
 const AGENT_MODE = process.env.CHATGPT_WEB_AGENT_MODE === '1';
 const llmStrategy = new ChatGptWebStrategy();
@@ -19,16 +21,33 @@ function createRequestHandler() {
 
     log('requests.log', `[${requestId}] [REQ] ${req.method} ${req.url}`);
 
+    // CORS
     if (req.method === 'OPTIONS') {
-      return sendSimpleLogged(res, 200, { ok: true }, requestId);
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      });
+      return res.end();
     }
 
+    // Models list
     if (req.method === 'GET' && req.url === '/v1/models') {
       return sendSimpleLogged(res, 200, modelsList(), requestId);
     }
 
-    if (req.method !== 'POST' || req.url !== '/v1/chat/completions') {
-      return sendSimpleLogged(res, 200, { ok: true }, requestId);
+    // README
+    if (req.method === 'GET' && (req.url === '/' || req.url === '/health')) {
+      return sendSimpleLogged(res, 200, {
+        service: 'chatgpt-web-bot',
+        status: 'running',
+        endpoints: ['/v1/models', '/v1/chat/completions', '/v1/responses']
+      }, requestId);
+    }
+
+    // Only POST endpoints beyond this point
+    if (req.method !== 'POST') {
+      return sendSimpleLogged(res, 404, { error: 'Not found' }, requestId);
     }
 
     let body = {};
@@ -38,13 +57,13 @@ function createRequestHandler() {
 
       writeBlock(
         'payload.log',
-        `OPENCLAW -> SERVER ${requestId}`,
+        `REQUEST -> SERVER ${requestId} ${req.url}`,
         safeJson(body)
       );
 
       log(
         'requests.log',
-        `[${requestId}] [PAYLOAD] model=${body.model || 'none'} messages=${body.messages?.length || 0} tools=${body.tools?.length || 0} stream=${body.stream} chars=${jsonSize(body)} agentMode=${AGENT_MODE}`
+        `[${requestId}] [PAYLOAD] url=${req.url} model=${body.model || 'none'} messages=${body.messages?.length || body.input?.length || 0} tools=${body.tools?.length || 0} input_type=${typeof body.input} stream=${body.stream} chars=${jsonSize(body)} agentMode=${AGENT_MODE}`
       );
     } catch (err) {
       log('errors.log', `[${requestId}] Invalid JSON: ${err.message}`);
@@ -57,6 +76,21 @@ function createRequestHandler() {
       );
     }
 
+    // ====== POST /v1/responses — для Codex с wire_api = "responses" ======
+    if (req.url === '/v1/responses') {
+      return handleCodexRequest(req, res, body, requestId, 'responses');
+    }
+
+    // ====== POST /v1/chat/completions — OpenClaw / стандартные клиенты ======
+
+    // Определяем, какой клиент: Codex (есть tools или input как строка) или OpenClaw
+    const isCodex = body.input !== undefined;
+
+    if (isCodex) {
+      return handleCodexRequest(req, res, body, requestId, 'chat');
+    }
+
+    // OpenClaw / стандартный режим
     const optimizedBody = optimizeOpenClawRequest(body);
 
     writeBlock(
