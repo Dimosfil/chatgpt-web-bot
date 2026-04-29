@@ -11,7 +11,6 @@ const {
 
 const { buildPrompt } = require('./strategies/promptBuilder.cleanUserOnly');
 const { buildAgentPrompt } = require('./strategies/promptBuilder.agentToolMode');
-
 const { handleSpecialRequest } = require('./strategies/specialRequests.openclaw');
 const { ChatGptWebStrategy } = require('./strategies/llm.chatgptWeb');
 const { optimizeOpenClawRequest } = require('./strategies/openclawOptimizer');
@@ -120,14 +119,11 @@ function sendToolCallLogged(reqBody, res, toolCall, requestId) {
     }
   ];
 
-  const streamText =
-    chunks.map(chunk => `data: ${JSON.stringify(chunk)}`).join('\n\n') +
-    '\n\ndata: [DONE]\n\n';
-
   writeBlock(
     'response.log',
     `SERVER -> OPENCLAW TOOL_CALL STREAM ${requestId}`,
-    streamText
+    chunks.map(chunk => `data: ${JSON.stringify(chunk)}`).join('\n\n') +
+      '\n\ndata: [DONE]\n\n'
   );
 
   res.writeHead(200, {
@@ -170,54 +166,41 @@ function sendCompletionLogged(reqBody, res, text, requestId) {
       object: 'chat.completion.chunk',
       created,
       model,
-      choices: [
-        {
-          index: 0,
-          delta: {
-            role: 'assistant'
-          },
-          finish_reason: null
-        }
-      ]
+      choices: [{
+        index: 0,
+        delta: { role: 'assistant' },
+        finish_reason: null
+      }]
     },
     {
       id,
       object: 'chat.completion.chunk',
       created,
       model,
-      choices: [
-        {
-          index: 0,
-          delta: {
-            content: text
-          },
-          finish_reason: null
-        }
-      ]
+      choices: [{
+        index: 0,
+        delta: { content: text },
+        finish_reason: null
+      }]
     },
     {
       id,
       object: 'chat.completion.chunk',
       created,
       model,
-      choices: [
-        {
-          index: 0,
-          delta: {},
-          finish_reason: 'stop'
-        }
-      ]
+      choices: [{
+        index: 0,
+        delta: {},
+        finish_reason: 'stop'
+      }]
     }
   ];
-
-  const streamText =
-    chunks.map(chunk => `data: ${JSON.stringify(chunk)}`).join('\n\n') +
-    '\n\ndata: [DONE]\n\n';
 
   writeBlock(
     'response.log',
     `SERVER -> OPENCLAW STREAM ${requestId}`,
-    streamText
+    chunks.map(chunk => `data: ${JSON.stringify(chunk)}`).join('\n\n') +
+      '\n\ndata: [DONE]\n\n'
   );
 
   res.writeHead(200, {
@@ -258,141 +241,141 @@ const server = http.createServer(async (req, res) => {
     return sendSimpleLogged(res, 200, modelsList(), requestId);
   }
 
-  if (req.method === 'POST' && req.url === '/v1/chat/completions') {
-    let body = {};
+  if (req.method !== 'POST' || req.url !== '/v1/chat/completions') {
+    return sendSimpleLogged(res, 200, completion({}, 'ok'), requestId);
+  }
 
-    try {
-      body = await readJsonBody(req);
+  let body = {};
 
-      writeBlock(
-        'payload.log',
-        `OPENCLAW -> SERVER ${requestId}`,
-        safeJson(body)
-      );
-
-      log(
-        'requests.log',
-        `[${requestId}] [PAYLOAD] model=${body.model || 'none'} messages=${body.messages?.length || 0} tools=${body.tools?.length || 0} stream=${body.stream} chars=${jsonSize(body)} agentMode=${AGENT_MODE}`
-      );
-    } catch (err) {
-      log('errors.log', `[${requestId}] Invalid JSON: ${err.message}`);
-
-      return sendCompletionLogged(
-        body,
-        res,
-        'Я не смог прочитать JSON запроса.',
-        requestId
-      );
-    }
-
-    const optimizedBody = optimizeOpenClawRequest(body);
+  try {
+    body = await readJsonBody(req);
 
     writeBlock(
-      'optimized.log',
-      `SERVER OPTIMIZED ${requestId}`,
-      safeJson(optimizedBody)
+      'payload.log',
+      `OPENCLAW -> SERVER ${requestId}`,
+      safeJson(body)
     );
 
     log(
       'requests.log',
-      `[${requestId}] [SIZE] original=${jsonSize(body)} optimized=${jsonSize(optimizedBody)} saved=${jsonSize(body) - jsonSize(optimizedBody)}`
+      `[${requestId}] [PAYLOAD] model=${body.model || 'none'} messages=${body.messages?.length || 0} tools=${body.tools?.length || 0} stream=${body.stream} chars=${jsonSize(body)} agentMode=${AGENT_MODE}`
     );
+  } catch (err) {
+    log('errors.log', `[${requestId}] Invalid JSON: ${err.message}`);
 
-    const specialReply = handleSpecialRequest(optimizedBody);
-
-    if (specialReply) {
-      writeBlock(
-        'response.log',
-        `SPECIAL REPLY ${requestId}`,
-        specialReply
-      );
-
-      return sendCompletionLogged(body, res, specialReply, requestId);
-    }
-
-    const prompt = AGENT_MODE
-  ? buildAgentPrompt(optimizedBody)
-  : buildPrompt(optimizedBody.messages || []);
-
-    writeBlock(
-      'prompt.log',
-      `SERVER -> CHATGPT_WEB ${requestId}`,
-      prompt || '[EMPTY PROMPT]'
-    );
-
-    log('requests.log', `[${requestId}] [PROMPT] chars=${prompt?.length || 0}`);
-
-    if (!prompt || !prompt.trim()) {
-      log('errors.log', `[${requestId}] Empty prompt after filtering`);
-
-      return sendCompletionLogged(
-        body,
-        res,
-        'Я не получил текст запроса.',
-        requestId
-      );
-    }
-
-    try {
-      const startedAt = Date.now();
-
-      log('requests.log', `[${requestId}] [LLM] start`);
-
-      const reply = await llmStrategy.generate(prompt);
-
-      writeBlock(
-        'response.log',
-        `CHATGPT_WEB -> SERVER ${requestId}`,
-        reply || '[EMPTY REPLY]'
-      );
-
-      log(
-        'requests.log',
-        `[${requestId}] [LLM] ok durationMs=${Date.now() - startedAt} replyChars=${reply?.length || 0}`
-      );
-
-if (AGENT_MODE) {
-  const parsed = tryParseAgentReply(reply);
-
-  writeBlock(
-    'response.log',
-    `AGENT PARSED ${requestId}`,
-    safeJson(parsed)
-  );
-
-  if (parsed.type === 'tool_call') {
-    return sendToolCallLogged(body, res, parsed.toolCall, requestId);
-  }
-
-  if (parsed.type === 'final') {
     return sendCompletionLogged(
       body,
       res,
-      parsed.text || 'Готово.',
+      'Я не смог прочитать JSON запроса.',
       requestId
     );
   }
-}
 
-      return sendCompletionLogged(
-        body,
-        res,
-        reply || 'ChatGPT Web вернул пустой ответ.',
-        requestId
-      );
-    } catch (err) {
-      log('errors.log', `[${requestId}] LLM error: ${err.message}\n${err.stack || ''}`);
+  const optimizedBody = optimizeOpenClawRequest(body);
 
-      return sendCompletionLogged(
-        body,
-        res,
-        'Сервис временно не смог получить ответ от ChatGPT Web.',
-        requestId
-      );
-    }
+  writeBlock(
+    'optimized.log',
+    `SERVER OPTIMIZED ${requestId}`,
+    safeJson(optimizedBody)
+  );
+
+  log(
+    'requests.log',
+    `[${requestId}] [SIZE] original=${jsonSize(body)} optimized=${jsonSize(optimizedBody)} saved=${jsonSize(body) - jsonSize(optimizedBody)}`
+  );
+
+  const specialReply = handleSpecialRequest(optimizedBody);
+
+  if (specialReply) {
+    writeBlock(
+      'response.log',
+      `SPECIAL REPLY ${requestId}`,
+      specialReply
+    );
+
+    return sendCompletionLogged(body, res, specialReply, requestId);
   }
 
-  return sendSimpleLogged(res, 200, completion({}, 'ok'), requestId);
+  const prompt = AGENT_MODE
+    ? buildAgentPrompt(optimizedBody)
+    : buildPrompt(optimizedBody.messages || []);
+
+  writeBlock(
+    'prompt.log',
+    `SERVER -> CHATGPT_WEB ${requestId}`,
+    prompt || '[EMPTY PROMPT]'
+  );
+
+  log('requests.log', `[${requestId}] [PROMPT] chars=${prompt?.length || 0}`);
+
+  if (!prompt || !prompt.trim()) {
+    log('errors.log', `[${requestId}] Empty prompt after filtering`);
+
+    return sendCompletionLogged(
+      body,
+      res,
+      'Я не получил текст запроса.',
+      requestId
+    );
+  }
+
+  try {
+    const startedAt = Date.now();
+
+    log('requests.log', `[${requestId}] [LLM] start`);
+
+    const reply = await llmStrategy.generate(prompt);
+
+    writeBlock(
+      'response.log',
+      `CHATGPT_WEB -> SERVER ${requestId}`,
+      reply || '[EMPTY REPLY]'
+    );
+
+    log(
+      'requests.log',
+      `[${requestId}] [LLM] ok durationMs=${Date.now() - startedAt} replyChars=${reply?.length || 0}`
+    );
+
+    const parsed = AGENT_MODE ? tryParseAgentReply(reply) : null;
+
+    if (parsed) {
+      writeBlock(
+        'response.log',
+        `AGENT PARSED ${requestId}`,
+        safeJson(parsed)
+      );
+
+      if (parsed.type === 'tool_call') {
+        return sendToolCallLogged(body, res, parsed.toolCall, requestId);
+      }
+
+      if (parsed.type === 'final') {
+        return sendCompletionLogged(
+          body,
+          res,
+          parsed.text || 'Готово.',
+          requestId
+        );
+      }
+    }
+
+    return sendCompletionLogged(
+      body,
+      res,
+      reply || 'ChatGPT Web вернул пустой ответ.',
+      requestId
+    );
+  } catch (err) {
+    log('errors.log', `[${requestId}] LLM error: ${err.message}\n${err.stack || ''}`);
+
+    return sendCompletionLogged(
+      body,
+      res,
+      'Сервис временно не смог получить ответ от ChatGPT Web.',
+      requestId
+    );
+  }
 });
 
 server.listen(PORT, () => {

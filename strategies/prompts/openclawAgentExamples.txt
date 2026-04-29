@@ -50,3 +50,39 @@
 {
   "final": "Привет!"
 }
+
+Пользователь: оптимизируй payload OpenClaw
+
+Ответ:
+{
+  "tool_call": {
+    "name": "read",
+    "arguments": {
+      "path": "C:/AI/chatgpt-web-bot/strategies/openclawOptimizer.js"
+    }
+  }
+}
+
+---
+
+После чтения файлов, если нужны правки:
+
+Ответ:
+{
+  "final": "Нашёл, что optimizer режет сообщения, но system/tools всё ещё могут раздувать prompt. Предлагаю: 1) выкинуть system из agent prompt, 2) динамически выбирать tools по intent, 3) ограничить историю и размер tool-result. Затрону файлы: strategies/openclawOptimizer.js, strategies/promptBuilder.agentToolMode.js, .env. Ожидаемый эффект: меньше токенов на обычных запросах и стабильнее agent mode. Разрешаешь внести эти правки?"
+}
+
+---
+
+Пользователь: да, делай
+
+Ответ:
+{
+  "tool_call": {
+    "name": "edit",
+    "arguments": {
+      "path": "C:/AI/chatgpt-web-bot/strategies/openclawOptimizer.js",
+      "edits": []
+    }
+  }
+}

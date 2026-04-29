@@ -63,6 +63,10 @@ function hasForceTools(text) {
 function detectToolIntent(text) {
   const t = String(text || '').toLowerCase();
 
+  if (/^(да|ок|делай|вноси|разрешаю|согласен|go|yes)\b/.test(t)) {
+    return 'file_write';
+  }
+
   if (hasForceTools(t)) {
     return 'force_tools';
   }
