@@ -32,6 +32,31 @@ function modelsList() {
   };
 }
 
+function completionWithToolCall(body, toolCall) {
+  return {
+    id: `chatcmpl-${Date.now()}`,
+    object: 'chat.completion',
+    created: Math.floor(Date.now() / 1000),
+    model: body?.model || 'chatgpt-web',
+    choices: [{
+      index: 0,
+      message: {
+        role: 'assistant',
+        content: null,
+        tool_calls: [{
+          id: `call_${Date.now()}`,
+          type: 'function',
+          function: {
+            name: toolCall.name,
+            arguments: JSON.stringify(toolCall.arguments || {})
+          }
+        }]
+      },
+      finish_reason: 'tool_calls'
+    }]
+  };
+}
+
 module.exports = {
   completion,
   modelsList

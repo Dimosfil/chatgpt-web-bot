@@ -1,15 +1,22 @@
+require('dotenv').config();
 const http = require('http');
 
 const { log } = require('./core/logger');
 const { send, readJsonBody } = require('./core/http');
-const { completion, modelsList } = require('./core/openaiResponse');
+const {
+  completion,
+  completionWithToolCall,
+  modelsList
+} = require('./core/openaiResponse');
 
 const { buildPrompt } = require('./strategies/promptBuilder.cleanUserOnly');
 const { handleSpecialRequest } = require('./strategies/specialRequests.openclaw');
 const { ChatGptWebStrategy } = require('./strategies/llm.chatgptWeb');
 const { optimizeOpenClawRequest } = require('./strategies/openclawOptimizer');
+const { tryParseToolCall } = require('./strategies/toolParser');
 
 const PORT = parseInt(process.env.CHATGPT_WEB_PORT || '3999', 10);
+const AGENT_MODE = process.env.CHATGPT_WEB_AGENT_MODE === '1';
 
 const llmStrategy = new ChatGptWebStrategy();
 
@@ -48,6 +55,18 @@ function writeBlock(file, title, content) {
 
 function makeCompletionPayload(reqBody, text) {
   return completion(reqBody, text);
+}
+
+function sendToolCallLogged(reqBody, res, toolCall, requestId) {
+  const payload = completionWithToolCall(reqBody, toolCall);
+
+  writeBlock(
+    'response.log',
+    `SERVER -> OPENCLAW TOOL_CALL ${requestId}`,
+    safeJson(payload)
+  );
+
+  return send(res, 200, payload);
 }
 
 function sendCompletionLogged(reqBody, res, text, requestId) {
@@ -177,7 +196,7 @@ const server = http.createServer(async (req, res) => {
 
       log(
         'requests.log',
-        `[${requestId}] [PAYLOAD] model=${body.model || 'none'} messages=${body.messages?.length || 0} tools=${body.tools?.length || 0} stream=${body.stream} chars=${jsonSize(body)}`
+        `[${requestId}] [PAYLOAD] model=${body.model || 'none'} messages=${body.messages?.length || 0} tools=${body.tools?.length || 0} stream=${body.stream} chars=${jsonSize(body)} agentMode=${AGENT_MODE}`
       );
     } catch (err) {
       log('errors.log', `[${requestId}] Invalid JSON: ${err.message}`);
@@ -253,6 +272,20 @@ const server = http.createServer(async (req, res) => {
         'requests.log',
         `[${requestId}] [LLM] ok durationMs=${Date.now() - startedAt} replyChars=${reply?.length || 0}`
       );
+
+      if (AGENT_MODE) {
+        const toolCall = tryParseToolCall(reply);
+
+        if (toolCall) {
+          writeBlock(
+            'response.log',
+            `TOOL CALL DETECTED ${requestId}`,
+            safeJson(toolCall)
+          );
+
+          return sendToolCallLogged(body, res, toolCall, requestId);
+        }
+      }
 
       return sendCompletionLogged(
         body,

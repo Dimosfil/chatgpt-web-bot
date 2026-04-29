@@ -1,3 +1,5 @@
+const AGENT_MODE = process.env.CHATGPT_WEB_AGENT_MODE === '1';
+
 function extractText(content) {
   if (typeof content === 'string') return content.trim();
 
@@ -26,6 +28,13 @@ function stripTelegramEnvelope(text) {
 }
 
 function optimizeOpenClawRequest(body) {
+  if (AGENT_MODE) {
+    return {
+      ...body,
+      stream: false
+    };
+  }
+
   const userMessages = (body.messages ?? [])
     .filter(m => m && m.role === 'user')
     .map(m => stripTelegramEnvelope(extractText(m.content)))
