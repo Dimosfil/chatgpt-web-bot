@@ -1,6 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 
+const MAX_PROMPT_MESSAGES = parseInt(
+  process.env.OPENCLAW_PROMPT_MAX_MESSAGES || '6',
+  10
+);
+
 function safeJson(obj) {
   try {
     return JSON.stringify(obj, null, 2);
@@ -20,7 +25,11 @@ function simplifyTools(tools) {
 }
 
 function readFileSafe(filePath) {
-  return fs.readFileSync(filePath, 'utf8').trim();
+  try {
+    return fs.readFileSync(filePath, 'utf8').trim();
+  } catch {
+    return '';
+  }
 }
 
 function buildAgentPrompt(body) {
@@ -28,6 +37,9 @@ function buildAgentPrompt(body) {
 
   const rules = readFileSafe(path.join(basePath, 'openclawAgentRules.txt'));
   const examples = readFileSafe(path.join(basePath, 'openclawAgentExamples.txt'));
+
+  const messages = (body.messages || []).slice(-MAX_PROMPT_MESSAGES);
+  const tools = simplifyTools(body.tools || []);
 
   return [
     rules,
@@ -38,11 +50,15 @@ function buildAgentPrompt(body) {
     safeJson(body._optimizer || {}),
     '',
     'Доступные tools после фильтрации:',
-    safeJson(simplifyTools(body.tools || [])),
+    safeJson(tools),
+    '',
+    'ВНИМАНИЕ: если tools пустой — нельзя использовать tool_call. В этом случае верни только final.',
     '',
     'История сообщений:',
-    safeJson(body.messages || [])
-  ].join('\n');
+    safeJson(messages)
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 module.exports = {
