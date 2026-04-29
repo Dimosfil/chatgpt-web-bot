@@ -46,10 +46,104 @@ function writeBlock(file, title, content) {
   log(file, `================ END ${title} ================\n`);
 }
 
-function sendLogged(res, statusCode, payload) {
+function makeCompletionPayload(reqBody, text) {
+  return completion(reqBody, text);
+}
+
+function sendCompletionLogged(reqBody, res, text, requestId) {
+  const wantsStream = reqBody.stream === true;
+
+  if (!wantsStream) {
+    const payload = makeCompletionPayload(reqBody, text);
+
+    writeBlock(
+      'response.log',
+      `SERVER -> OPENCLAW JSON ${requestId}`,
+      safeJson(payload)
+    );
+
+    return send(res, 200, payload);
+  }
+
+  const id = `chatcmpl-${Date.now()}`;
+  const created = Math.floor(Date.now() / 1000);
+  const model = reqBody.model || 'chatgpt-web';
+
+  const chunks = [
+    {
+      id,
+      object: 'chat.completion.chunk',
+      created,
+      model,
+      choices: [
+        {
+          index: 0,
+          delta: {
+            role: 'assistant'
+          },
+          finish_reason: null
+        }
+      ]
+    },
+    {
+      id,
+      object: 'chat.completion.chunk',
+      created,
+      model,
+      choices: [
+        {
+          index: 0,
+          delta: {
+            content: text
+          },
+          finish_reason: null
+        }
+      ]
+    },
+    {
+      id,
+      object: 'chat.completion.chunk',
+      created,
+      model,
+      choices: [
+        {
+          index: 0,
+          delta: {},
+          finish_reason: 'stop'
+        }
+      ]
+    }
+  ];
+
+  const streamText =
+    chunks.map(chunk => `data: ${JSON.stringify(chunk)}`).join('\n\n') +
+    '\n\ndata: [DONE]\n\n';
+
   writeBlock(
     'response.log',
-    `SERVER -> OPENCLAW ${new Date().toISOString()}`,
+    `SERVER -> OPENCLAW STREAM ${requestId}`,
+    streamText
+  );
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no'
+  });
+
+  for (const chunk of chunks) {
+    res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+  }
+
+  res.write('data: [DONE]\n\n');
+  res.end();
+}
+
+function sendSimpleLogged(res, statusCode, payload, requestId) {
+  writeBlock(
+    'response.log',
+    `SERVER -> OPENCLAW SIMPLE ${requestId}`,
     safeJson(payload)
   );
 
@@ -62,11 +156,11 @@ const server = http.createServer(async (req, res) => {
   log('requests.log', `[${requestId}] [REQ] ${req.method} ${req.url}`);
 
   if (req.method === 'OPTIONS') {
-    return sendLogged(res, 200, { ok: true });
+    return sendSimpleLogged(res, 200, { ok: true }, requestId);
   }
 
   if (req.method === 'GET' && req.url === '/v1/models') {
-    return sendLogged(res, 200, modelsList());
+    return sendSimpleLogged(res, 200, modelsList(), requestId);
   }
 
   if (req.method === 'POST' && req.url === '/v1/chat/completions') {
@@ -88,10 +182,11 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       log('errors.log', `[${requestId}] Invalid JSON: ${err.message}`);
 
-      return sendLogged(
+      return sendCompletionLogged(
+        body,
         res,
-        200,
-        completion({}, 'Я не смог прочитать JSON запроса.')
+        'Я не смог прочитать JSON запроса.',
+        requestId
       );
     }
 
@@ -111,15 +206,13 @@ const server = http.createServer(async (req, res) => {
     const specialReply = handleSpecialRequest(optimizedBody);
 
     if (specialReply) {
-      const responsePayload = completion(optimizedBody, specialReply);
-
       writeBlock(
         'response.log',
         `SPECIAL REPLY ${requestId}`,
         specialReply
       );
 
-      return sendLogged(res, 200, responsePayload);
+      return sendCompletionLogged(body, res, specialReply, requestId);
     }
 
     const prompt = buildPrompt(optimizedBody.messages || []);
@@ -135,10 +228,11 @@ const server = http.createServer(async (req, res) => {
     if (!prompt || !prompt.trim()) {
       log('errors.log', `[${requestId}] Empty prompt after filtering`);
 
-      return sendLogged(
+      return sendCompletionLogged(
+        body,
         res,
-        200,
-        completion(optimizedBody, 'Я не получил текст запроса.')
+        'Я не получил текст запроса.',
+        requestId
       );
     }
 
@@ -160,24 +254,25 @@ const server = http.createServer(async (req, res) => {
         `[${requestId}] [LLM] ok durationMs=${Date.now() - startedAt} replyChars=${reply?.length || 0}`
       );
 
-      const responsePayload = completion(optimizedBody, reply || 'ChatGPT Web вернул пустой ответ.');
-
-      return sendLogged(res, 200, responsePayload);
+      return sendCompletionLogged(
+        body,
+        res,
+        reply || 'ChatGPT Web вернул пустой ответ.',
+        requestId
+      );
     } catch (err) {
       log('errors.log', `[${requestId}] LLM error: ${err.message}\n${err.stack || ''}`);
 
-      return sendLogged(
+      return sendCompletionLogged(
+        body,
         res,
-        200,
-        completion(
-          optimizedBody,
-          'Сервис временно не смог получить ответ от ChatGPT Web.'
-        )
+        'Сервис временно не смог получить ответ от ChatGPT Web.',
+        requestId
       );
     }
   }
 
-  return sendLogged(res, 200, completion({}, 'ok'));
+  return sendSimpleLogged(res, 200, completion({}, 'ok'), requestId);
 });
 
 server.listen(PORT, () => {
