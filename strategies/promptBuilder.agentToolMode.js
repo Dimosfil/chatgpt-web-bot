@@ -1,67 +1,62 @@
-function extractText(content) {
-  if (!content) return '';
-  if (typeof content === 'string') return content;
-
-  if (Array.isArray(content)) {
-    return content.map(p => {
-      if (!p) return '';
-      if (typeof p === 'string') return p;
-      if (typeof p.text === 'string') return p.text;
-      if (typeof p.content === 'string') return p.content;
-      return '';
-    }).filter(Boolean).join('\n');
+function safeJson(obj) {
+  try {
+    return JSON.stringify(obj, null, 2);
+  } catch {
+    return String(obj);
   }
-
-  if (typeof content === 'object') {
-    if (typeof content.text === 'string') return content.text;
-    if (typeof content.content === 'string') return content.content;
-    return JSON.stringify(content);
-  }
-
-  return String(content);
 }
 
-function isGarbage(text) {
-  if (!text) return true;
-
-  const bad = [
-    'BEGIN_QUOTED_NOTES',
-    'END_QUOTED_NOTES',
-    'Untrusted daily memory',
-    'Startup context loaded by runtime',
-    'Based on this conversation, generate a short',
-    'Conversation summary:',
-    'chat_id',
-    'message_id',
-    'sender_id',
-    'untrusted metadata',
-    'Pre-compaction memory flush',
-    'NO_REPLY',
-    'Store durable memories'
-  ];
-
-  return bad.some(x => text.includes(x));
+function simplifyTools(tools) {
+  return (tools || [])
+    .filter(t => t && t.type === 'function' && t.function)
+    .map(t => ({
+      name: t.function.name,
+      description: t.function.description || '',
+      parameters: t.function.parameters || {}
+    }));
 }
 
-function buildPrompt(messages) {
-  const userTexts = messages
-    .filter(m => m.role === 'user')
-    .map(m => extractText(m.content).trim())
-    .filter(t => t && !isGarbage(t));
+function buildAgentPrompt(body) {
+  return `
+Ты агент внутри OpenClaw.
 
-  if (userTexts.length > 0) {
-    return userTexts[userTexts.length - 1];
+Ты можешь использовать инструменты OpenClaw. Если нужно читать файл — вызывай read. Если нужно изменить файл — вызывай edit или write. Если нужно выполнить команду — вызывай exec.
+
+ВАЖНО:
+- Верни только JSON.
+- Не добавляй markdown.
+- Не добавляй пояснения.
+- Не выдумывай инструменты.
+- Используй только доступные tools.
+
+Если нужен инструмент, ответь так:
+
+{
+  "tool_call": {
+    "name": "read",
+    "arguments": {
+      "path": "server.js"
+    }
   }
+}
+Для Windows-путей используй прямые слэши: C:/Users/Fil-Server/.openclaw/openclaw.json
+Не используй одиночные обратные слэши.
+Если инструмент не нужен, ответь так:
 
-  const anyText = messages
-    .map(m => extractText(m.content).trim())
-    .filter(t => t && !isGarbage(t));
+{
+  "final": "ответ пользователю"
+}
 
-  return anyText[anyText.length - 1] || '';
+Доступные tools:
+
+${safeJson(simplifyTools(body.tools || []))}
+
+История сообщений:
+
+${safeJson(body.messages || [])}
+`.trim();
 }
 
 module.exports = {
-  buildPrompt,
-  extractText,
-  isGarbage
+  buildAgentPrompt
 };

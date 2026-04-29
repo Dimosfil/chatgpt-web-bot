@@ -40,11 +40,34 @@ class ChatGptWebStrategy {
 
     const box = page.locator('#prompt-textarea').first();
 
-    await box.click();
-    await page.keyboard.press('Control+A');
-    await page.keyboard.press('Backspace');
-    await page.keyboard.type(prompt, { delay: 5 });
-    await page.keyboard.press('Enter');
+await box.click();
+
+await page.evaluate(async (text) => {
+  const el = document.querySelector('#prompt-textarea');
+
+  if (!el) {
+    throw new Error('prompt-textarea not found');
+  }
+
+  el.focus();
+
+  if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+    el.value = text;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    return;
+  }
+
+  el.textContent = text;
+  el.dispatchEvent(new InputEvent('input', {
+    bubbles: true,
+    inputType: 'insertText',
+    data: text
+  }));
+}, prompt);
+
+await page.waitForTimeout(300);
+await page.keyboard.press('Enter');
 
     const timeoutMs = parseInt(
       process.env.CHATGPT_WEB_TIMEOUT || '120000',

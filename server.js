@@ -10,10 +10,12 @@ const {
 } = require('./core/openaiResponse');
 
 const { buildPrompt } = require('./strategies/promptBuilder.cleanUserOnly');
+const { buildAgentPrompt } = require('./strategies/promptBuilder.agentToolMode');
+
 const { handleSpecialRequest } = require('./strategies/specialRequests.openclaw');
 const { ChatGptWebStrategy } = require('./strategies/llm.chatgptWeb');
 const { optimizeOpenClawRequest } = require('./strategies/openclawOptimizer');
-const { tryParseToolCall } = require('./strategies/toolParser');
+const { tryParseAgentReply } = require('./strategies/toolParser');
 
 const PORT = parseInt(process.env.CHATGPT_WEB_PORT || '3999', 10);
 const AGENT_MODE = process.env.CHATGPT_WEB_AGENT_MODE === '1';
@@ -58,15 +60,89 @@ function makeCompletionPayload(reqBody, text) {
 }
 
 function sendToolCallLogged(reqBody, res, toolCall, requestId) {
-  const payload = completionWithToolCall(reqBody, toolCall);
+  const wantsStream = reqBody.stream === true;
+
+  if (!wantsStream) {
+    const payload = completionWithToolCall(reqBody, toolCall);
+
+    writeBlock(
+      'response.log',
+      `SERVER -> OPENCLAW TOOL_CALL JSON ${requestId}`,
+      safeJson(payload)
+    );
+
+    return send(res, 200, payload);
+  }
+
+  const id = `chatcmpl-${Date.now()}`;
+  const callId = toolCall.id || `call_${Date.now()}`;
+  const created = Math.floor(Date.now() / 1000);
+  const model = reqBody.model || 'chatgpt-web';
+
+  const args =
+    typeof toolCall.arguments === 'string'
+      ? toolCall.arguments
+      : JSON.stringify(toolCall.arguments || {});
+
+  const chunks = [
+    {
+      id,
+      object: 'chat.completion.chunk',
+      created,
+      model,
+      choices: [{
+        index: 0,
+        delta: {
+          role: 'assistant',
+          tool_calls: [{
+            index: 0,
+            id: callId,
+            type: 'function',
+            function: {
+              name: toolCall.name,
+              arguments: args
+            }
+          }]
+        },
+        finish_reason: null
+      }]
+    },
+    {
+      id,
+      object: 'chat.completion.chunk',
+      created,
+      model,
+      choices: [{
+        index: 0,
+        delta: {},
+        finish_reason: 'tool_calls'
+      }]
+    }
+  ];
+
+  const streamText =
+    chunks.map(chunk => `data: ${JSON.stringify(chunk)}`).join('\n\n') +
+    '\n\ndata: [DONE]\n\n';
 
   writeBlock(
     'response.log',
-    `SERVER -> OPENCLAW TOOL_CALL ${requestId}`,
-    safeJson(payload)
+    `SERVER -> OPENCLAW TOOL_CALL STREAM ${requestId}`,
+    streamText
   );
 
-  return send(res, 200, payload);
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no'
+  });
+
+  for (const chunk of chunks) {
+    res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+  }
+
+  res.write('data: [DONE]\n\n');
+  res.end();
 }
 
 function sendCompletionLogged(reqBody, res, text, requestId) {
@@ -234,7 +310,9 @@ const server = http.createServer(async (req, res) => {
       return sendCompletionLogged(body, res, specialReply, requestId);
     }
 
-    const prompt = buildPrompt(optimizedBody.messages || []);
+    const prompt = AGENT_MODE
+  ? buildAgentPrompt(optimizedBody)
+  : buildPrompt(optimizedBody.messages || []);
 
     writeBlock(
       'prompt.log',
@@ -273,19 +351,28 @@ const server = http.createServer(async (req, res) => {
         `[${requestId}] [LLM] ok durationMs=${Date.now() - startedAt} replyChars=${reply?.length || 0}`
       );
 
-      if (AGENT_MODE) {
-        const toolCall = tryParseToolCall(reply);
+if (AGENT_MODE) {
+  const parsed = tryParseAgentReply(reply);
 
-        if (toolCall) {
-          writeBlock(
-            'response.log',
-            `TOOL CALL DETECTED ${requestId}`,
-            safeJson(toolCall)
-          );
+  writeBlock(
+    'response.log',
+    `AGENT PARSED ${requestId}`,
+    safeJson(parsed)
+  );
 
-          return sendToolCallLogged(body, res, toolCall, requestId);
-        }
-      }
+  if (parsed.type === 'tool_call') {
+    return sendToolCallLogged(body, res, parsed.toolCall, requestId);
+  }
+
+  if (parsed.type === 'final') {
+    return sendCompletionLogged(
+      body,
+      res,
+      parsed.text || 'Готово.',
+      requestId
+    );
+  }
+}
 
       return sendCompletionLogged(
         body,

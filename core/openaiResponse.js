@@ -20,18 +20,6 @@ function completion(body, text) {
   };
 }
 
-function modelsList() {
-  return {
-    object: 'list',
-    data: [{
-      id: 'chatgpt-web',
-      object: 'model',
-      created: Math.floor(Date.now() / 1000),
-      owned_by: 'chatgpt-web-bot'
-    }]
-  };
-}
-
 function completionWithToolCall(body, toolCall) {
   return {
     id: `chatcmpl-${Date.now()}`,
@@ -44,7 +32,7 @@ function completionWithToolCall(body, toolCall) {
         role: 'assistant',
         content: null,
         tool_calls: [{
-          id: `call_${Date.now()}`,
+          id: toolCall.id || `call_${Date.now()}`,
           type: 'function',
           function: {
             name: toolCall.name,
@@ -53,11 +41,29 @@ function completionWithToolCall(body, toolCall) {
         }]
       },
       finish_reason: 'tool_calls'
+    }],
+    usage: {
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0
+    }
+  };
+}
+
+function modelsList() {
+  return {
+    object: 'list',
+    data: [{
+      id: 'chatgpt-web',
+      object: 'model',
+      created: Math.floor(Date.now() / 1000),
+      owned_by: 'chatgpt-web-bot'
     }]
   };
 }
 
 module.exports = {
   completion,
+  completionWithToolCall,
   modelsList
 };
