@@ -1,15 +1,15 @@
-const { DEFAULT_PROMPT, PROJECT_NAME } = require('./config');
-const { ts, logStep } = require('./utils');
+const { DEFAULT_PROMPT, PROJECT_NAME } = require('./src/config');
+const { ts, logStep } = require('./src/utils');
 
-const { connectChrome } = require('./steps/connectChrome');
-const { getChatGPTPage } = require('./steps/getChatGPTPage');
-const { openProjectFolder } = require('./steps/openProjectFolder');
-const { createNewChat } = require('./steps/createNewChat');
-const { getAssistantCount } = require('./steps/getAssistantCount');
-const { findComposer } = require('./steps/findComposer');
-const { fillComposer } = require('./steps/fillComposer');
-const { sendMessage } = require('./steps/sendMessage');
-const { waitForAssistantReply } = require('./steps/waitForAssistantReply');
+const { connectChrome } = require('./src/steps/connectChrome');
+const { getChatGPTPage } = require('./src/steps/getChatGPTPage');
+const { openProjectFolder } = require('./src/steps/openProjectFolder');
+const { createNewChat } = require('./src/steps/createNewChat');
+const { getAssistantCount } = require('./src/steps/getAssistantCount');
+const { findComposer } = require('./src/steps/findComposer');
+const { fillComposer } = require('./src/steps/fillComposer');
+const { sendMessage } = require('./src/steps/sendMessage');
+const { waitForAssistantReply } = require('./src/steps/waitForAssistantReply');
 
 const PROMPT = process.argv.slice(2).join(' ') || DEFAULT_PROMPT;
 
