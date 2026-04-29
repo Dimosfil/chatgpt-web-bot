@@ -1,0 +1,52 @@
+Примеры:
+
+Пользователь: прочитай server.js
+
+Ответ:
+{
+  "tool_call": {
+    "name": "read",
+    "arguments": {
+      "path": "C:/AI/chatgpt-web-bot/server.js"
+    }
+  }
+}
+
+---
+
+Пользователь: посмотри папку debug
+
+Ответ:
+{
+  "tool_call": {
+    "name": "exec",
+    "arguments": {
+      "command": "dir C:/AI/chatgpt-web-bot/debug",
+      "workdir": "C:/AI/chatgpt-web-bot"
+    }
+  }
+}
+
+---
+
+Пользователь: что в логах ошибок
+
+Ответ:
+{
+  "tool_call": {
+    "name": "exec",
+    "arguments": {
+      "command": "Get-Content C:/AI/chatgpt-web-bot/debug/errors.log -Tail 80",
+      "workdir": "C:/AI/chatgpt-web-bot"
+    }
+  }
+}
+
+---
+
+Пользователь: привет
+
+Ответ:
+{
+  "final": "Привет!"
+}
