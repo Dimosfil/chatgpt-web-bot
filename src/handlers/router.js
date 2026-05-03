@@ -10,6 +10,7 @@ const { handleSpecialRequest } = require('../strategies/specialRequests.openclaw
 const { ChatGptWebStrategy } = require('../strategies/llm.chatgptWeb');
 const { optimizeOpenClawRequest } = require('../strategies/openclawOptimizer');
 const { tryParseAgentReply } = require('../strategies/toolParser');
+const { handleCodexFullFeature } = require('./handleCodexFullFeature');
 const { handleCodexRequest } = require('./handleCodexRequest');
 
 const AGENT_MODE = process.env.CHATGPT_WEB_AGENT_MODE === '1';
@@ -78,7 +79,7 @@ function createRequestHandler() {
 
     // ====== POST /v1/responses — для Codex с wire_api = "responses" ======
     if (req.url === '/v1/responses') {
-      return handleCodexRequest(req, res, body, requestId, 'responses');
+      return handleCodexFullFeature(req, res, body, requestId, 'responses');
     }
 
     // ====== POST /v1/chat/completions — OpenClaw / стандартные клиенты ======
@@ -87,7 +88,7 @@ function createRequestHandler() {
     const isCodex = body.input !== undefined;
 
     if (isCodex) {
-      return handleCodexRequest(req, res, body, requestId, 'chat');
+      return handleCodexFullFeature(req, res, body, requestId, 'chat');
     }
 
     // OpenClaw / стандартный режим
