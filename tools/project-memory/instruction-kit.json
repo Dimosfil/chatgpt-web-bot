@@ -1,5 +1,5 @@
 {
-  "instruction_kit_version": "2026.05.16.6",
+  "instruction_kit_version": "2026.05.16.7",
   "source": "D:\\AI\\general-instructions",
   "installed_at": "2026-05-16T00:00:00+03:00",
   "update_check": {
@@ -12,7 +12,8 @@
     "2026.05.16.3__add_instruction_kit_migrations",
     "2026.05.16.4__clarify_agent_update_commands",
     "2026.05.16.5__clarify_commit_language_selection",
-    "2026.05.16.6__use_checklist_for_commit_language_selection"
+    "2026.05.16.6__use_checklist_for_commit_language_selection",
+    "2026.05.16.7__add_gi_summary_command"
   ],
   "copied_files": [
     "AGENTS.md",
@@ -27,5 +28,5 @@
     "tools/check-instruction-kit-updates.ps1",
     ".gitignore"
   ],
-  "last_update_check_at": "2026-05-16T18:40:52+03:00"
+  "last_update_check_at": "2026-05-16T19:30:57+03:00"
 }

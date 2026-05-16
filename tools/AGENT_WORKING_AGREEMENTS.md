@@ -54,6 +54,7 @@
 - Treat that shared folder as a source used for copying local files, not as a live dependency, package, submodule, symlink, or runtime reference.
 - Check accepted updates with `.\tools\check-instruction-kit-updates.ps1`.
 - Treat short chat commands that start with `gi` as shared instruction-kit commands for `D:\AI\general-instructions`.
+- On `gi summary` or `gi саммари`, create `tools/summary/` if needed and write a new concise handoff file named `YYYY-MM-DD_HH-mm-ss_AGENT_WORK_SUMMARY.md` with current state, changes, commands, verification, caveats, next steps, and git status.
 - Instruction-kit refresh is idempotent: bootstrap/init first only when `tools/project-memory/instruction-kit.json` is missing; otherwise apply only pending accepted migrations.
 - Read only accepted release artifacts for update checks: `VERSION.md`, `CHANGELOG.md`, `INDEX.md`, and relevant files under `migrations/`.
 - Do not read the shared library `updates/` folder during project startup, bootstrap, or instruction-kit update checks.
