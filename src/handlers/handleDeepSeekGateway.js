@@ -28,6 +28,7 @@ function sendResponsesStream(res, body, text, requestId) {
   const id = `resp_${Date.now()}`;
   const created = Math.floor(Date.now() / 1000);
   const model = body.model || process.env.DEEPSEEK_MODEL || 'deepseek-chat';
+  const messageId = `msg_${Date.now()}`;
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
@@ -38,19 +39,65 @@ function sendResponsesStream(res, body, text, requestId) {
 
   res.write(`data: ${JSON.stringify({ type: 'response.created', response_id: id, created })}\n\n`);
   res.write(`data: ${JSON.stringify({ type: 'response.in_progress', response_id: id, created })}\n\n`);
-  res.write(`data: ${JSON.stringify({
-    type: 'response.output_text.delta',
-    response_id: id,
-    created,
-    output_index: 0,
-    part_index: 0,
-    delta: text
-  })}\n\n`);
+
+  if (text) {
+    res.write(`data: ${JSON.stringify({
+      type: 'response.output_item.added',
+      response_id: id,
+      created,
+      output_index: 0,
+      item: { id: messageId, type: 'message', role: 'assistant', content: [] }
+    })}\n\n`);
+
+    res.write(`data: ${JSON.stringify({
+      type: 'response.content_part.added',
+      response_id: id,
+      created,
+      output_index: 0,
+      part_index: 0,
+      part: { type: 'text' }
+    })}\n\n`);
+
+    for (let i = 0; i < text.length; i += 200) {
+      const chunk = text.slice(i, i + 200);
+      res.write(`data: ${JSON.stringify({
+        type: 'response.output_text.delta',
+        response_id: id,
+        created,
+        output_index: 0,
+        part_index: 0,
+        delta: chunk
+      })}\n\n`);
+    }
+
+    res.write(`data: ${JSON.stringify({
+      type: 'response.output_text.done',
+      response_id: id,
+      created,
+      output_index: 0,
+      part_index: 0,
+      text
+    })}\n\n`);
+  }
+
   res.write(`data: ${JSON.stringify({
     type: 'response.completed',
     response_id: id,
     created,
-    response: responsesOutput({ ...body, model }, text)
+    response: {
+      id,
+      object: 'response',
+      created,
+      model,
+      status: 'completed',
+      output: text ? [{
+        id: messageId,
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'output_text', text, annotations: [] }]
+      }] : [],
+      usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 }
+    }
   })}\n\n`);
   res.write('data: [DONE]\n\n');
   res.end();
