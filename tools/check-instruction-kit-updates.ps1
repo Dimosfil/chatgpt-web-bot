@@ -1,5 +1,6 @@
 param(
     [string]$InstructionKitPath = "tools/project-memory/instruction-kit.json",
+    [string]$SharedLibraryPath = "",
     [switch]$Apply
 )
 
@@ -21,6 +22,47 @@ function Get-VersionFromFile {
     return $null
 }
 
+function Test-UsablePath {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return $false
+    }
+
+    try {
+        return Test-Path -LiteralPath $Path
+    }
+    catch {
+        return $false
+    }
+}
+
+function Resolve-SharedLibraryPath {
+    param(
+        [object]$Kit,
+        [string]$ExplicitPath
+    )
+
+    $candidates = @()
+    if (-not [string]::IsNullOrWhiteSpace($ExplicitPath)) {
+        $candidates += [string]$ExplicitPath
+    }
+    if ($env:GENERAL_INSTRUCTIONS_HOME) {
+        $candidates += [string]$env:GENERAL_INSTRUCTIONS_HOME
+    }
+    if ($Kit.update_check -and $Kit.update_check.shared_library_path) {
+        $candidates += [string]$Kit.update_check.shared_library_path
+    }
+
+    foreach ($candidate in ($candidates | Select-Object -Unique)) {
+        if (Test-UsablePath -Path $candidate) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
 if (-not (Test-Path -LiteralPath $InstructionKitPath)) {
     Write-Host "No instruction kit metadata found at $InstructionKitPath."
     Write-Host "Bootstrap this project from the shared instruction library first."
@@ -29,17 +71,11 @@ if (-not (Test-Path -LiteralPath $InstructionKitPath)) {
 
 $kit = Get-Content -LiteralPath $InstructionKitPath -Raw | ConvertFrom-Json
 
-$sharedPath = $null
-if ($kit.update_check -and $kit.update_check.shared_library_path) {
-    $sharedPath = [string]$kit.update_check.shared_library_path
-}
-elseif ($env:GENERAL_INSTRUCTIONS_HOME) {
-    $sharedPath = $env:GENERAL_INSTRUCTIONS_HOME
-}
+$sharedPath = Resolve-SharedLibraryPath -Kit $kit -ExplicitPath $SharedLibraryPath
 
 if (-not $sharedPath) {
-    Write-Host "No shared instruction library path configured."
-    Write-Host "Set update_check.shared_library_path or GENERAL_INSTRUCTIONS_HOME."
+    Write-Host "No usable shared instruction library path found."
+    Write-Host "Set GENERAL_INSTRUCTIONS_HOME, pass -SharedLibraryPath, or update update_check.shared_library_path."
     exit 1
 }
 
