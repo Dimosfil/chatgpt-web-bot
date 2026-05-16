@@ -12,9 +12,18 @@ const { optimizeOpenClawRequest } = require('../strategies/openclawOptimizer');
 const { tryParseAgentReply } = require('../strategies/toolParser');
 const { handleCodexFullFeature } = require('./handleCodexFullFeature');
 const { handleCodexRequest } = require('./handleCodexRequest');
+const {
+  handleDeepSeekChat,
+  handleDeepSeekResponses
+} = require('./handleDeepSeekGateway');
 
 const AGENT_MODE = process.env.CHATGPT_WEB_AGENT_MODE === '1';
+const DEFAULT_BACKEND = process.env.CHATGPT_WEB_BACKEND || 'chatgpt_web';
 const llmStrategy = new ChatGptWebStrategy();
+
+function shouldUseDeepSeek(body) {
+  return DEFAULT_BACKEND === 'deepseek' || String(body?.model || '').startsWith('deepseek/');
+}
 
 function createRequestHandler() {
   return async (req, res) => {
@@ -79,6 +88,9 @@ function createRequestHandler() {
 
     // ====== POST /v1/responses — для Codex с wire_api = "responses" ======
     if (req.url === '/v1/responses') {
+      if (shouldUseDeepSeek(body)) {
+        return handleDeepSeekResponses(req, res, body, requestId);
+      }
       return handleCodexFullFeature(req, res, body, requestId, 'responses');
     }
 
@@ -88,7 +100,14 @@ function createRequestHandler() {
     const isCodex = body.input !== undefined;
 
     if (isCodex) {
+      if (shouldUseDeepSeek(body)) {
+        return handleDeepSeekChat(req, res, body, requestId);
+      }
       return handleCodexFullFeature(req, res, body, requestId, 'chat');
+    }
+
+    if (shouldUseDeepSeek(body)) {
+      return handleDeepSeekChat(req, res, body, requestId);
     }
 
     // OpenClaw / стандартный режим

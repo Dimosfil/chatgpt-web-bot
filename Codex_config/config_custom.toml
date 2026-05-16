@@ -1,0 +1,28 @@
+model = "deepseek/deepseek-chat"
+model_provider = "chatgpt-web-bot"
+
+[model_providers.chatgpt-web-bot]
+name = "chatgpt-web-bot DeepSeek Gateway"
+base_url = "http://127.0.0.1:3999/v1"
+env_key = "OPENCLAW_API_KEY"
+wire_api = "responses"
+
+[model_providers.openclaw]
+name = "OpenClaw Gateway"
+base_url = "http://192.168.3.63:3999/v1"
+env_key = "OPENCLAW_API_KEY"
+wire_api = "responses"
+
+[marketplaces.openai-bundled]
+last_updated = "2026-04-29T23:03:12Z"
+source_type = "local"
+source = '\\?\C:\Users\Fil-Dom\.codex\.tmp\bundled-marketplaces\openai-bundled'
+
+[plugins."browser-use@openai-bundled"]
+enabled = true
+
+[windows]
+sandbox = "elevated"
+
+[projects.'h:\work\logistix\warehouse sim\warehousesimulation']
+trust_level = "trusted"

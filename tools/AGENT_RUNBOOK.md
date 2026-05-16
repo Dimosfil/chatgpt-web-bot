@@ -84,6 +84,8 @@ Ask before stopping visible processes or restarting Chrome.
 
 - `.env` controls port, timeouts, and modes.
 - `CHATGPT_WEB_AGENT_MODE=1` enables agent mode with intent detection and tool call support.
+- `CHATGPT_WEB_BACKEND=chatgpt_web|deepseek` selects the default backend.
+- `DEEPSEEK_API_KEY`, `DEEPSEEK_BASE_URL`, `DEEPSEEK_MODEL`, and `DEEPSEEK_TIMEOUT` configure the native DeepSeek gateway.
 - `CHATGPT_WEB_TIMEOUT=120000` sets the ChatGPT response timeout in milliseconds.
 - If ChatGPT says it could not read the JSON request, check `readJsonBody()` and incoming JSON shape.
 - If the service cannot get a ChatGPT Web response, check Chrome CDP, the chatgpt.com tab, and timeouts.

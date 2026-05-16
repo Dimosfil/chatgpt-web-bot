@@ -1,0 +1,7 @@
+[marketplaces.openai-bundled]
+last_updated = "2026-05-03T17:22:24Z"
+source_type = "local"
+source = '\\?\C:\Users\Fil-Dom\.codex\.tmp\bundled-marketplaces\openai-bundled'
+
+[plugins."browser-use@openai-bundled"]
+enabled = true

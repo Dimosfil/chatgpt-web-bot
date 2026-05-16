@@ -42,6 +42,7 @@ src/server.js (HTTP, порт 3999)
 - **OpenClaw** — `POST /v1/chat/completions`, JSON без `input`. Проходит через `openclawOptimizer` (сжатие сообщений, детект intent).
 - **Codex CLI** — `POST /v1/responses` или `POST /v1/chat/completions` с `input`. Полноценные tool calls.
 - **Любой OpenAI-клиент** — простой чат, только последнее user-сообщение.
+- **DeepSeek gateway** — включается через `CHATGPT_WEB_BACKEND=deepseek` или модель `deepseek/...`; использует native OpenAI-compatible `/chat/completions` вместо ChatGPT Web prompt-склейки.
 
 ## Restore Context
 
@@ -164,6 +165,8 @@ node src/tests/test-chrome.js     # проверка Chrome CDP
 - `.env` управляет портом (`CHATGPT_WEB_PORT=3999`), agent mode (`CHATGPT_WEB_AGENT_MODE=1`), таймаутами
 - Для agent mode: `CHATGPT_WEB_AGENT_MODE=1` включает оптимизатор с intent detection и tool call support
 - `CHATGPT_WEB_DEFAULT_CLIENT=codex` — клиент по умолчанию
+- `CHATGPT_WEB_BACKEND=chatgpt_web|deepseek` выбирает backend по умолчанию.
+- Для DeepSeek: `DEEPSEEK_API_KEY`, `DEEPSEEK_BASE_URL`, `DEEPSEEK_MODEL`, `DEEPSEEK_TIMEOUT`.
 
 ## Critical Dependencies
 

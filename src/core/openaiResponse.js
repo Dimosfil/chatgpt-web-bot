@@ -52,16 +52,27 @@ function completionWithToolCall(body, toolCall) {
 
 function modelsList() {
   const now = Math.floor(Date.now() / 1000);
+  const models = [
+    {
+      id: 'chatgpt-web',
+      object: 'model',
+      created: now,
+      owned_by: 'chatgpt-web-bot'
+    }
+  ];
+
+  if (process.env.DEEPSEEK_API_KEY || process.env.CHATGPT_WEB_BACKEND === 'deepseek') {
+    models.push({
+      id: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+      object: 'model',
+      created: now,
+      owned_by: 'deepseek'
+    });
+  }
+
   return {
     object: 'list',
-    data: [
-      {
-        id: 'chatgpt-web',
-        object: 'model',
-        created: now,
-        owned_by: 'chatgpt-web-bot'
-      }
-    ]
+    data: models
   };
 }
 
