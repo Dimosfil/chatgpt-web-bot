@@ -18,6 +18,13 @@
 - No branch naming convention is required in this project unless the user asks for one.
 - Never commit `.env`, `node_modules/`, `src/debug/`, `logs/`, `chrome-debug-profile/`, or `pw-profile/`.
 - Follow `tools/project-memory/git-preferences.json` for commit-message languages when the user explicitly asks the agent to commit.
+- Keep English as the primary commit-message language. Do not infer extra commit-message languages from the user's UI language or message language.
+- If the user asks to choose commit-message languages without naming them, ask with a concise Markdown checklist:
+  - show `English` as selected and primary;
+  - mark currently enabled additional languages as selected;
+  - include `Russian`, `Spanish`, `German`, and `French`;
+  - ask the user to reply with language names or numbers.
+- If the user names commit-message languages explicitly, update `tools/project-memory/git-preferences.json` directly and summarize the new setting.
 - Prefer `git diff --stat` and targeted `Select-String` over full `git diff`.
 
 ## Context Hygiene
@@ -46,7 +53,10 @@
 - This local instruction kit was bootstrapped from `D:\AI\general-instructions`.
 - Treat that shared folder as a source used for copying local files, not as a live dependency, package, submodule, symlink, or runtime reference.
 - Check accepted updates with `.\tools\check-instruction-kit-updates.ps1`.
-- Do not read the shared library `updates/` folder during project startup or bootstrap.
+- Treat short chat commands that start with `gi` as shared instruction-kit commands for `D:\AI\general-instructions`.
+- Instruction-kit refresh is idempotent: bootstrap/init first only when `tools/project-memory/instruction-kit.json` is missing; otherwise apply only pending accepted migrations.
+- Read only accepted release artifacts for update checks: `VERSION.md`, `CHANGELOG.md`, `INDEX.md`, and relevant files under `migrations/`.
+- Do not read the shared library `updates/` folder during project startup, bootstrap, or instruction-kit update checks.
 - When this project reveals a reusable improvement, write a dated recommendation to the shared library's `updates/` folder only when explicitly working on instruction maintenance.
 
 ## Verification

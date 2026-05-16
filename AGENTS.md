@@ -184,6 +184,10 @@ node src/tests/test-chrome.js     # проверка Chrome CDP
 - Follow `tools/AGENT_WORKING_AGREEMENTS.md` for shared working rules and `tools/AGENT_RUNBOOK.md` for command details.
 - Treat `D:\AI\general-instructions` only as the bootstrap source for this local instruction kit, not as a runtime dependency, package, submodule, or symlink.
 - Check accepted instruction-kit updates with `.\tools\check-instruction-kit-updates.ps1`; do not read the shared library `updates/` folder during project startup.
+- Treat short chat commands that start with `gi` as shared instruction-kit commands for `D:\AI\general-instructions`, not as product work for this project.
+- Instruction-kit refresh is idempotent: bootstrap/init first only when `tools/project-memory/instruction-kit.json` is missing; otherwise apply only pending accepted migrations from `VERSION.md`, `CHANGELOG.md`, `INDEX.md`, and `migrations/`.
+- For commit-message language preferences, keep English as primary and do not infer extra languages from the user's UI or message language.
+- If the user asks to choose commit-message languages without naming them, ask with a concise Markdown checklist showing English selected and optional Russian, Spanish, German, and French.
 - Logs пишутся в `src/debug/` — проверяй через `-Tail`, не читай весь файл.
 - `.env` — не коммитить, но изменения подсвечивать пользователю.
 - Если ChatGPT Web отвечает «Я не смог прочитать JSON запроса» — проверяй `readJsonBody()` и формат входящего запроса.

@@ -1,5 +1,5 @@
 {
-  "instruction_kit_version": "2026.05.16.3",
+  "instruction_kit_version": "2026.05.16.6",
   "source": "D:\\AI\\general-instructions",
   "installed_at": "2026-05-16T00:00:00+03:00",
   "update_check": {
@@ -9,7 +9,10 @@
   "applied_migrations": [
     "2026.05.16.1__add_skill_modules",
     "2026.05.16.2__add_git_commit_preferences",
-    "2026.05.16.3__add_instruction_kit_migrations"
+    "2026.05.16.3__add_instruction_kit_migrations",
+    "2026.05.16.4__clarify_agent_update_commands",
+    "2026.05.16.5__clarify_commit_language_selection",
+    "2026.05.16.6__use_checklist_for_commit_language_selection"
   ],
   "copied_files": [
     "AGENTS.md",
@@ -23,5 +26,6 @@
     "tools/select-git-commit-languages.ps1",
     "tools/check-instruction-kit-updates.ps1",
     ".gitignore"
-  ]
+  ],
+  "last_update_check_at": "2026-05-16T18:40:52+03:00"
 }
