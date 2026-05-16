@@ -1,0 +1,27 @@
+{
+  "instruction_kit_version": "2026.05.16.3",
+  "source": "D:\\AI\\general-instructions",
+  "installed_at": "2026-05-16T00:00:00+03:00",
+  "update_check": {
+    "shared_library_path": "D:\\AI\\general-instructions",
+    "enabled": true
+  },
+  "applied_migrations": [
+    "2026.05.16.1__add_skill_modules",
+    "2026.05.16.2__add_git_commit_preferences",
+    "2026.05.16.3__add_instruction_kit_migrations"
+  ],
+  "copied_files": [
+    "AGENTS.md",
+    "tools/AGENT_WORKING_AGREEMENTS.md",
+    "tools/AGENT_RUNBOOK.md",
+    "tools/agent-start.ps1",
+    "tools/project-memory/README.md",
+    "tools/project-memory/STUDY_PLAN.md",
+    "tools/project-memory/pending-tasks.md",
+    "tools/project-memory/git-preferences.json",
+    "tools/select-git-commit-languages.ps1",
+    "tools/check-instruction-kit-updates.ps1",
+    ".gitignore"
+  ]
+}

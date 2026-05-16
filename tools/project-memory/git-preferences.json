@@ -1,0 +1,16 @@
+﻿{
+    "commit_message_languages":  {
+                                     "primary":  "English",
+                                     "additional":  [
+
+                                                    ],
+                                     "available":  [
+                                                       "English",
+                                                       "Russian",
+                                                       "Spanish",
+                                                       "German",
+                                                       "French"
+                                                   ],
+                                     "format":  "english_plus_selected_translations"
+                                 }
+}

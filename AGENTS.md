@@ -46,7 +46,7 @@ src/server.js (HTTP, порт 3999)
 ## Restore Context
 
 ```powershell
-cd C:\AI\chatgpt-web-bot
+cd D:\AI\chatgpt-web-bot
 git status --short
 Get-ChildItem tools/summary/ | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | ForEach-Object { Get-Content $_.FullName }
 ```
@@ -56,8 +56,10 @@ Get-ChildItem tools/summary/ | Sort-Object LastWriteTime -Descending | Select-Ob
 - `tools/project-memory/` — архитектурные заметки, решения, известные проблемы
 - `tools/project-memory/NOTES.md` — экспортированные заметки из SQLite
 - `tools/project-memory/project_memory.sqlite` — SQLite БД памяти агентов (FTS5)
-- `tools/summaries/` — handoff-суммари после сессий
-- `tools/working-agreements.md` — правила работы агента в проекте
+- `tools/summary/` — handoff-суммари после сессий
+- `tools/AGENT_WORKING_AGREEMENTS.md` — правила работы агента в проекте
+- `tools/AGENT_RUNBOOK.md` — команды запуска, проверки, логов и диагностики
+- `tools/project-memory/instruction-kit.json` — версия локально скопированного набора инструкций
 
 ### Agent Memory SQLite
 
@@ -176,6 +178,9 @@ node src/tests/test-chrome.js     # проверка Chrome CDP
 - Keep changes scoped to the current task.
 - Ask before destructive operations, broad refactors, or Chrome restarts.
 - Use targeted queries instead of dumping whole files.
+- Follow `tools/AGENT_WORKING_AGREEMENTS.md` for shared working rules and `tools/AGENT_RUNBOOK.md` for command details.
+- Treat `D:\AI\general-instructions` only as the bootstrap source for this local instruction kit, not as a runtime dependency, package, submodule, or symlink.
+- Check accepted instruction-kit updates with `.\tools\check-instruction-kit-updates.ps1`; do not read the shared library `updates/` folder during project startup.
 - Logs пишутся в `src/debug/` — проверяй через `-Tail`, не читай весь файл.
 - `.env` — не коммитить, но изменения подсвечивать пользователю.
 - Если ChatGPT Web отвечает «Я не смог прочитать JSON запроса» — проверяй `readJsonBody()` и формат входящего запроса.
