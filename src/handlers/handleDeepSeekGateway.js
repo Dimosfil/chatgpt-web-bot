@@ -107,6 +107,7 @@ function sendResponsesStreamToolCall(res, body, toolCall, requestId) {
   const id = `resp_${Date.now()}`;
   const created = Math.floor(Date.now() / 1000);
   const model = body.model || process.env.DEEPSEEK_MODEL || 'deepseek-chat';
+  const callId = toolCall.id || `call_${Date.now()}`;
   const args = typeof toolCall.arguments === 'string'
     ? toolCall.arguments
     : JSON.stringify(toolCall.arguments || {});
@@ -119,26 +120,49 @@ function sendResponsesStreamToolCall(res, body, toolCall, requestId) {
   });
 
   res.write(`data: ${JSON.stringify({ type: 'response.created', response_id: id, created })}\n\n`);
+  res.write(`data: ${JSON.stringify({ type: 'response.in_progress', response_id: id, created })}\n\n`);
   res.write(`data: ${JSON.stringify({
     type: 'response.output_item.added',
     response_id: id,
     created,
     output_index: 0,
-    item: { id: toolCall.id, type: 'function_call', name: toolCall.name, arguments: '' }
+    item: { id: callId, type: 'function_call', name: toolCall.name, arguments: '' }
+  })}\n\n`);
+  res.write(`data: ${JSON.stringify({
+    type: 'response.function_call_arguments.delta',
+    response_id: id,
+    created,
+    output_index: 0,
+    item_id: callId,
+    delta: args
   })}\n\n`);
   res.write(`data: ${JSON.stringify({
     type: 'response.function_call_arguments.done',
     response_id: id,
     created,
     output_index: 0,
-    item_id: toolCall.id,
+    item_id: callId,
     arguments: args
   })}\n\n`);
   res.write(`data: ${JSON.stringify({
     type: 'response.completed',
     response_id: id,
     created,
-    response: responsesOutputWithToolCall({ ...body, model }, toolCall)
+    response: {
+      id,
+      object: 'response',
+      created,
+      model,
+      status: 'completed',
+      output: [{
+        id: callId,
+        type: 'function_call',
+        name: toolCall.name,
+        arguments: args,
+        call_id: callId
+      }],
+      usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 }
+    }
   })}\n\n`);
   res.write('data: [DONE]\n\n');
   res.end();
