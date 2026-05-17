@@ -126,7 +126,14 @@ function sendResponsesStreamToolCall(res, body, toolCall, requestId) {
     response_id: id,
     created,
     output_index: 0,
-    item: { id: callId, type: 'function_call', name: toolCall.name, arguments: '' }
+    item: {
+      id: callId,
+      type: 'function_call',
+      call_id: callId,
+      name: toolCall.name,
+      arguments: '',
+      status: 'in_progress'
+    }
   })}\n\n`);
   res.write(`data: ${JSON.stringify({
     type: 'response.function_call_arguments.delta',
@@ -143,6 +150,20 @@ function sendResponsesStreamToolCall(res, body, toolCall, requestId) {
     output_index: 0,
     item_id: callId,
     arguments: args
+  })}\n\n`);
+  res.write(`data: ${JSON.stringify({
+    type: 'response.output_item.done',
+    response_id: id,
+    created,
+    output_index: 0,
+    item: {
+      id: callId,
+      type: 'function_call',
+      call_id: callId,
+      name: toolCall.name,
+      arguments: args,
+      status: 'completed'
+    }
   })}\n\n`);
   res.write(`data: ${JSON.stringify({
     type: 'response.completed',
