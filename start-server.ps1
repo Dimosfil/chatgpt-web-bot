@@ -1,4 +1,5 @@
 # Start chatgpt-web-bot server
+$root = $PSScriptRoot
 $procId = (Get-NetTCPConnection -LocalPort 3999 -ErrorAction SilentlyContinue).OwningProcess
 if ($procId) {
     Write-Host "Server already running (PID $procId). Use stop-server first." -ForegroundColor Yellow
@@ -6,7 +7,7 @@ if ($procId) {
 }
 
 Write-Host "Starting chatgpt-web-bot server..." -ForegroundColor Green
-Start-Process -FilePath "cmd.exe" -ArgumentList "/c title chatgpt-web-bot-server.js && node C:\AI\chatgpt-web-bot\src\server.js" -WindowStyle Normal
+Start-Process -FilePath "cmd.exe" -ArgumentList "/c title chatgpt-web-bot-server && node .\src\server.js" -WorkingDirectory $root -WindowStyle Normal
 Start-Sleep 2
 
 $newPid = (Get-NetTCPConnection -LocalPort 3999 -ErrorAction SilentlyContinue).OwningProcess

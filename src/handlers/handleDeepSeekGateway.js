@@ -144,6 +144,24 @@ function sendResponsesStreamToolCall(res, body, toolCall, requestId) {
   res.end();
 }
 
+function sendResponsesStreamError(res, message) {
+  if (!res.headersSent) {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no'
+    });
+  }
+
+  res.write(`data: ${JSON.stringify({
+    type: 'response.failed',
+    error: { message }
+  })}\n\n`);
+  res.write('data: [DONE]\n\n');
+  res.end();
+}
+
 async function handleDeepSeekChat(req, res, body, requestId) {
   const payload = buildDeepSeekChatRequest(body);
 
@@ -162,32 +180,40 @@ async function handleDeepSeekChat(req, res, body, requestId) {
 }
 
 async function handleDeepSeekResponses(req, res, body, requestId) {
-  const payload = buildDeepSeekChatRequest(body, { stream: false });
+  try {
+    const payload = buildDeepSeekChatRequest(body, { stream: false });
 
-  if (!payload.messages.length) {
-    return send(res, 400, { error: { message: 'input cannot be empty' } });
-  }
+    if (!payload.messages.length) {
+      return send(res, 400, { error: { message: 'input cannot be empty' } });
+    }
 
-  const upstream = await deepSeek.chatCompletion(payload, requestId);
-  const choice = firstChoice(upstream);
-  const toolCall = toolCallFromChoice(choice);
+    const upstream = await deepSeek.chatCompletion(payload, requestId);
+    const choice = firstChoice(upstream);
+    const toolCall = toolCallFromChoice(choice);
 
-  writeBlock('response.log', `DEEPSEEK -> CLIENT RESPONSES ${requestId}`, safeJson(upstream));
+    writeBlock('response.log', `DEEPSEEK -> CLIENT RESPONSES ${requestId}`, safeJson(upstream));
 
-  if (toolCall) {
+    if (toolCall) {
+      if (body.stream === true) {
+        sendResponsesStreamToolCall(res, body, toolCall, requestId);
+        return;
+      }
+      return send(res, 200, responsesOutputWithToolCall(body, toolCall));
+    }
+
+    const text = textFromChoice(choice);
     if (body.stream === true) {
-      sendResponsesStreamToolCall(res, body, toolCall, requestId);
+      sendResponsesStream(res, body, text, requestId);
       return;
     }
-    return send(res, 200, responsesOutputWithToolCall(body, toolCall));
+    return send(res, 200, responsesOutput(body, text));
+  } catch (err) {
+    if (body.stream === true) {
+      sendResponsesStreamError(res, err.message || 'DeepSeek request failed');
+      return;
+    }
+    return send(res, 500, responsesOutput(body, err.message || 'DeepSeek request failed'));
   }
-
-  const text = textFromChoice(choice);
-  if (body.stream === true) {
-    sendResponsesStream(res, body, text, requestId);
-    return;
-  }
-  return send(res, 200, responsesOutput(body, text));
 }
 
 module.exports = {

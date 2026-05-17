@@ -11,10 +11,16 @@ function textFromContent(content) {
     .join('\n');
 }
 
+function normalizeRole(role) {
+  if (role === 'developer') return 'system';
+  if (role === 'function') return 'tool';
+  return role || 'user';
+}
+
 function normalizeChatMessages(body) {
   if (Array.isArray(body.messages)) {
     return body.messages.map(message => ({
-      role: message.role || 'user',
+      role: normalizeRole(message.role),
       content: textFromContent(message.content)
     }));
   }
@@ -43,7 +49,7 @@ function responsesInputToMessages(input) {
 
     if (item.type === 'message') {
       messages.push({
-        role: item.role || 'user',
+        role: normalizeRole(item.role),
         content: textFromContent(item.content)
       });
       continue;
@@ -132,6 +138,7 @@ function buildDeepSeekChatRequest(body, { stream = body.stream === true } = {}) 
 module.exports = {
   buildDeepSeekChatRequest,
   normalizeChatMessages,
+  normalizeRole,
   normalizeTools,
   resolveDeepSeekModel,
   responsesInputToMessages

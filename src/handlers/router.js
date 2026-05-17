@@ -28,6 +28,7 @@ function shouldUseDeepSeek(body) {
 function createRequestHandler() {
   return async (req, res) => {
     const requestId = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    const urlPath = (req.url || '').split('?')[0];
 
     log('requests.log', `[${requestId}] [REQ] ${req.method} ${req.url}`);
 
@@ -42,12 +43,12 @@ function createRequestHandler() {
     }
 
     // Models list
-    if (req.method === 'GET' && req.url === '/v1/models') {
+    if (req.method === 'GET' && urlPath === '/v1/models') {
       return sendSimpleLogged(res, 200, modelsList(), requestId);
     }
 
     // README
-    if (req.method === 'GET' && (req.url === '/' || req.url === '/health')) {
+    if (req.method === 'GET' && (urlPath === '/' || urlPath === '/health')) {
       return sendSimpleLogged(res, 200, {
         service: 'chatgpt-web-bot',
         status: 'running',
@@ -87,7 +88,7 @@ function createRequestHandler() {
     }
 
     // ====== POST /v1/responses — для Codex с wire_api = "responses" ======
-    if (req.url === '/v1/responses') {
+    if (urlPath === '/v1/responses') {
       if (shouldUseDeepSeek(body)) {
         return handleDeepSeekResponses(req, res, body, requestId);
       }
