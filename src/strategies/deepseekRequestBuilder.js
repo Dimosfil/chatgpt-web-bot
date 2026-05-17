@@ -140,9 +140,27 @@ function resolveDeepSeekModel(body) {
   return process.env.DEEPSEEK_MODEL || 'deepseek-chat';
 }
 
+function resolveThinking(body, model) {
+  if (body.thinking && typeof body.thinking === 'object') {
+    return body.thinking;
+  }
+
+  const configured = (process.env.DEEPSEEK_THINKING || '').trim().toLowerCase();
+  if (configured === 'enabled' || configured === 'disabled') {
+    return { type: configured };
+  }
+
+  if (model.startsWith('deepseek-v4-')) {
+    return { type: 'disabled' };
+  }
+
+  return null;
+}
+
 function buildDeepSeekChatRequest(body, { stream = body.stream === true } = {}) {
+  const model = resolveDeepSeekModel(body);
   const payload = {
-    model: resolveDeepSeekModel(body),
+    model,
     messages: normalizeChatMessages(body),
     stream
   };
@@ -157,6 +175,9 @@ function buildDeepSeekChatRequest(body, { stream = body.stream === true } = {}) 
   if (typeof body.max_tokens === 'number') payload.max_tokens = body.max_tokens;
   if (typeof body.top_p === 'number') payload.top_p = body.top_p;
 
+  const thinking = resolveThinking(body, model);
+  if (thinking) payload.thinking = thinking;
+
   return payload;
 }
 
@@ -167,5 +188,6 @@ module.exports = {
   normalizeRole,
   normalizeTools,
   resolveDeepSeekModel,
+  resolveThinking,
   responsesInputToMessages
 };
