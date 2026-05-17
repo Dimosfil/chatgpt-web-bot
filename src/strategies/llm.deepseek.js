@@ -1,5 +1,6 @@
 const { log } = require('../core/logger');
 const { safeJson, writeBlock } = require('../core/safeJson');
+const { cloneWithoutDeepSeekReasoning } = require('./deepseekDialogManager');
 
 const DEFAULT_BASE_URL = 'https://api.deepseek.com';
 
@@ -55,11 +56,39 @@ class DeepSeekStrategy {
       'X-Accel-Buffering': 'no'
     });
 
+    const decoder = new TextDecoder();
+    const encoder = new TextEncoder();
+    let pending = '';
+
     for await (const chunk of upstream.body) {
-      res.write(chunk);
+      pending += decoder.decode(chunk, { stream: true });
+      const lines = pending.split(/\r?\n/);
+      pending = lines.pop() || '';
+
+      for (const line of lines) {
+        res.write(encoder.encode(`${this.sanitizeStreamLine(line)}\n`));
+      }
+    }
+
+    pending += decoder.decode();
+    if (pending) {
+      res.write(encoder.encode(this.sanitizeStreamLine(pending)));
     }
 
     res.end();
+  }
+
+  sanitizeStreamLine(line) {
+    if (!line.startsWith('data: ')) return line;
+
+    const data = line.slice('data: '.length);
+    if (data === '[DONE]') return line;
+
+    try {
+      return `data: ${JSON.stringify(cloneWithoutDeepSeekReasoning(JSON.parse(data)))}`;
+    } catch {
+      return line;
+    }
   }
 
   async fetch(path, payload, requestId) {

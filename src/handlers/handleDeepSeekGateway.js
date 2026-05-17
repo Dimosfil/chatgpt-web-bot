@@ -3,6 +3,10 @@ const { responsesOutput, responsesOutputWithToolCall } = require('../core/openai
 const { safeJson, writeBlock } = require('../core/safeJson');
 const { DeepSeekStrategy } = require('../strategies/llm.deepseek');
 const { buildDeepSeekChatRequest } = require('../strategies/deepseekRequestBuilder');
+const {
+  cloneWithoutDeepSeekReasoning,
+  deepSeekDialogManager
+} = require('../strategies/deepseekDialogManager');
 
 const deepSeek = new DeepSeekStrategy();
 
@@ -209,6 +213,7 @@ function sendResponsesStreamError(res, message) {
 
 async function handleDeepSeekChat(req, res, body, requestId) {
   const payload = buildDeepSeekChatRequest(body);
+  payload.messages = deepSeekDialogManager.rehydrateMessages(payload.messages);
 
   if (!payload.messages.length) {
     return send(res, 400, { error: { message: 'messages/input cannot be empty' } });
@@ -220,23 +225,31 @@ async function handleDeepSeekChat(req, res, body, requestId) {
   }
 
   const upstream = await deepSeek.chatCompletion(payload, requestId);
-  writeBlock('response.log', `DEEPSEEK -> CLIENT CHAT ${requestId}`, safeJson(upstream));
-  return send(res, 200, upstream);
+  deepSeekDialogManager.captureResponse(upstream);
+  const safeUpstream = cloneWithoutDeepSeekReasoning(upstream);
+  writeBlock('response.log', `DEEPSEEK -> CLIENT CHAT ${requestId}`, safeJson(safeUpstream));
+  return send(res, 200, safeUpstream);
 }
 
 async function handleDeepSeekResponses(req, res, body, requestId) {
   try {
     const payload = buildDeepSeekChatRequest(body, { stream: false });
+    payload.messages = deepSeekDialogManager.rehydrateMessages(payload.messages);
 
     if (!payload.messages.length) {
       return send(res, 400, { error: { message: 'input cannot be empty' } });
     }
 
     const upstream = await deepSeek.chatCompletion(payload, requestId);
+    deepSeekDialogManager.captureResponse(upstream);
     const choice = firstChoice(upstream);
     const toolCall = toolCallFromChoice(choice);
 
-    writeBlock('response.log', `DEEPSEEK -> CLIENT RESPONSES ${requestId}`, safeJson(upstream));
+    writeBlock(
+      'response.log',
+      `DEEPSEEK -> CLIENT RESPONSES ${requestId}`,
+      safeJson(cloneWithoutDeepSeekReasoning(upstream, { redact: true }))
+    );
 
     if (toolCall) {
       if (body.stream === true) {

@@ -185,6 +185,7 @@ node src/tests/test-chrome.js     # проверка Chrome CDP
 - Treat `D:\AI\general-instructions` only as the bootstrap source for this local instruction kit, not as a runtime dependency, package, submodule, or symlink.
 - Check accepted instruction-kit updates with `.\tools\check-instruction-kit-updates.ps1`; do not read the shared library `updates/` folder during project startup.
 - Treat short chat commands that start with `gi` as shared instruction-kit commands for `D:\AI\general-instructions`, not as product work for this project.
+- After completing a `gi` command, summarize only that instruction-kit command's result and stop; continue older product work only if the user explicitly asks to continue.
 - On `gi summary` or `gi саммари`, create a concise handoff file under `tools/summary/YYYY-MM-DD_HH-mm-ss_AGENT_WORK_SUMMARY.md`; do not satisfy the command only by replying in chat.
 - Instruction-kit refresh is idempotent: bootstrap/init first only when `tools/project-memory/instruction-kit.json` is missing; otherwise apply only pending accepted migrations from `VERSION.md`, `CHANGELOG.md`, `INDEX.md`, and `migrations/`.
 - For commit-message language preferences, keep English as primary and do not infer extra languages from the user's UI or message language.
