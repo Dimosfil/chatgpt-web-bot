@@ -1,4 +1,4 @@
-function completion(body, text) {
+﻿function completion(body, text) {
   return {
     id: `chatcmpl-${Date.now()}`,
     object: 'chat.completion',
@@ -58,6 +58,12 @@ function modelsList() {
       object: 'model',
       created: now,
       owned_by: 'chatgpt-web-bot'
+    },
+    {
+      id: 'cursor',
+      object: 'model',
+      created: now,
+      owned_by: 'cursor'
     }
   ];
 

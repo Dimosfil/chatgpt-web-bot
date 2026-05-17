@@ -1,9 +1,7 @@
 ﻿{
     "commit_message_languages":  {
                                      "primary":  "English",
-                                     "additional":  [
-
-                                                    ],
+                                     "additional":  ["Russian"],
                                      "available":  [
                                                        "English",
                                                        "Russian",

@@ -1,4 +1,4 @@
-const { log } = require('../core/logger');
+﻿const { log } = require('../core/logger');
 const { readJsonBody } = require('../core/http');
 const { modelsList } = require('../core/openaiResponse');
 const { safeJson, jsonSize, writeBlock } = require('../core/safeJson');
@@ -10,12 +10,13 @@ const { handleSpecialRequest } = require('../strategies/specialRequests.openclaw
 const { ChatGptWebStrategy } = require('../strategies/llm.chatgptWeb');
 const { optimizeOpenClawRequest } = require('../strategies/openclawOptimizer');
 const { tryParseAgentReply } = require('../strategies/toolParser');
+const { isCursorRequest } = require('../clients/cursorDetect');
 const { handleCodexFullFeature } = require('./handleCodexFullFeature');
-const { handleCodexRequest } = require('./handleCodexRequest');
 const {
   handleDeepSeekChat,
   handleDeepSeekResponses
 } = require('./handleDeepSeekGateway');
+const { handleCursorChat } = require('./handleCursorRequest');
 
 const AGENT_MODE = process.env.CHATGPT_WEB_AGENT_MODE === '1';
 const DEFAULT_BACKEND = process.env.CHATGPT_WEB_BACKEND || 'chatgpt_web';
@@ -87,6 +88,19 @@ function createRequestHandler() {
       );
     }
 
+    // ====== Cursor client — chat completions only ======
+    if (isCursorRequest(req, body)) {
+      log('requests.log', `[${requestId}] [CLIENT] cursor`);
+
+      if (urlPath === '/v1/responses') {
+        return sendSimpleLogged(res, 400, {
+          error: { message: 'Cursor does not support /v1/responses. Use /v1/chat/completions.' }
+        }, requestId);
+      }
+
+      return handleCursorChat(req, res, body, requestId);
+    }
+
     // ====== POST /v1/responses — для Codex с wire_api = "responses" ======
     if (urlPath === '/v1/responses') {
       if (shouldUseDeepSeek(body)) {
@@ -97,7 +111,7 @@ function createRequestHandler() {
 
     // ====== POST /v1/chat/completions — OpenClaw / стандартные клиенты ======
 
-    // Определяем, какой клиент: Codex (есть tools или input как строка) или OpenClaw
+    // Определяем, какой клиент: Codex (есть input как строка) или OpenClaw
     const isCodex = body.input !== undefined;
 
     if (isCodex) {
