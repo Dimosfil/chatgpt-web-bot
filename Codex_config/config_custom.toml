@@ -1,9 +1,15 @@
 model = "deepseek/deepseek-chat"
-model_provider = "chatgpt-web-bot"
+model_provider = "chatgpt-web-bot-lan"
 
 [model_providers.chatgpt-web-bot]
-name = "chatgpt-web-bot DeepSeek Gateway"
+name = "chatgpt-web-bot DeepSeek Gateway Local"
 base_url = "http://127.0.0.1:3999/v1"
+env_key = "OPENCLAW_API_KEY"
+wire_api = "responses"
+
+[model_providers.chatgpt-web-bot-lan]
+name = "chatgpt-web-bot DeepSeek Gateway LAN"
+base_url = "http://192.168.3.55:3999/v1"
 env_key = "OPENCLAW_API_KEY"
 wire_api = "responses"
 
