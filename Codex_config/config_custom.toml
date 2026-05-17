@@ -1,4 +1,4 @@
-model = "deepseek/deepseek-chat"
+model = "deepseek/deepseek-v4-pro"
 model_provider = "chatgpt-web-bot-lan"
 
 [model_providers.chatgpt-web-bot]
