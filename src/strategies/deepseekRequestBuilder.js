@@ -17,6 +17,23 @@ function normalizeRole(role) {
   return role || 'user';
 }
 
+function normalizeParameters(parameters) {
+  if (!parameters || typeof parameters !== 'object' || Array.isArray(parameters)) {
+    return { type: 'object', properties: {}, additionalProperties: false };
+  }
+
+  if (parameters.type === 'object') {
+    return parameters;
+  }
+
+  return {
+    ...parameters,
+    type: 'object',
+    properties: parameters.properties || {},
+    additionalProperties: parameters.additionalProperties ?? false
+  };
+}
+
 function normalizeChatMessages(body) {
   if (Array.isArray(body.messages)) {
     return body.messages.map(message => ({
@@ -88,14 +105,22 @@ function responsesInputToMessages(input) {
 function normalizeTools(tools) {
   return (tools || [])
     .map(tool => {
-      if (tool?.type === 'function' && tool.function) return tool;
+      if (tool?.type === 'function' && tool.function) {
+        return {
+          ...tool,
+          function: {
+            ...tool.function,
+            parameters: normalizeParameters(tool.function.parameters)
+          }
+        };
+      }
       if (tool?.name) {
         return {
           type: 'function',
           function: {
             name: tool.name,
             description: tool.description || '',
-            parameters: tool.parameters || {}
+            parameters: normalizeParameters(tool.parameters)
           }
         };
       }
@@ -138,6 +163,7 @@ function buildDeepSeekChatRequest(body, { stream = body.stream === true } = {}) 
 module.exports = {
   buildDeepSeekChatRequest,
   normalizeChatMessages,
+  normalizeParameters,
   normalizeRole,
   normalizeTools,
   resolveDeepSeekModel,
