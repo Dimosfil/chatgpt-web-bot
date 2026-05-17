@@ -35,14 +35,53 @@ function normalizeParameters(parameters) {
 }
 
 function normalizeChatMessages(body) {
-  if (Array.isArray(body.messages)) {
-    return body.messages.map(message => ({
+  const messages = Array.isArray(body.messages)
+    ? body.messages.map(message => ({
       role: normalizeRole(message.role),
       content: textFromContent(message.content)
-    }));
+    }))
+    : responsesInputToMessages(body.input);
+
+  return normalizeDeepSeekToolMessagePairs(messages);
+}
+
+function normalizeDeepSeekToolMessagePairs(messages) {
+  const normalized = [];
+
+  for (let i = 0; i < messages.length; i += 1) {
+    const message = messages[i];
+
+    if (message?.role === 'assistant' && Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
+      const expectedIds = new Set(message.tool_calls.map(call => call?.id).filter(Boolean));
+      const toolMessages = [];
+      const seenIds = new Set();
+      let j = i + 1;
+
+      while (j < messages.length && messages[j]?.role === 'tool') {
+        const toolMessage = messages[j];
+        if (expectedIds.has(toolMessage.tool_call_id)) {
+          toolMessages.push(toolMessage);
+          seenIds.add(toolMessage.tool_call_id);
+        }
+        j += 1;
+      }
+
+      if (expectedIds.size > 0 && [...expectedIds].every(id => seenIds.has(id))) {
+        normalized.push(message, ...toolMessages);
+      }
+
+      i = j - 1;
+      continue;
+    }
+
+    if (message?.role === 'tool') {
+      continue;
+    }
+
+    normalized.push(message);
   }
 
-  return responsesInputToMessages(body.input);
+  return normalized;
 }
 
 function responsesInputToMessages(input) {
@@ -184,6 +223,7 @@ function buildDeepSeekChatRequest(body, { stream = body.stream === true } = {}) 
 module.exports = {
   buildDeepSeekChatRequest,
   normalizeChatMessages,
+  normalizeDeepSeekToolMessagePairs,
   normalizeParameters,
   normalizeRole,
   normalizeTools,
