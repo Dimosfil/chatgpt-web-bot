@@ -1,5 +1,5 @@
 ﻿{
-    "instruction_kit_version":  "2026.05.16.12",
+    "instruction_kit_version":  "2026.05.18.14",
     "source":  "D:\\AI\\general-instructions",
     "installed_at":  "2026-05-16T00:00:00+03:00",
     "update_check":  {
@@ -31,7 +31,21 @@
                                "2026.05.16.9__scope_gi_command_responses",
                                "2026.05.16.10__keep_gi_commands_in_current_project",
                                "2026.05.16.11__commit_push_successful_gi_updates",
-                               "2026.05.16.12__do_not_require_git_for_gi_updates"
+                               "2026.05.16.12__do_not_require_git_for_gi_updates",
+                               "2026.05.18.1__add_gi_git_summary_command",
+                               "2026.05.18.10__add_gi_start_sprint_command",
+                               "2026.05.18.11__clarify_gi_prefix_and_token_economy",
+                               "2026.05.18.12__collect_reusable_project_experience_for_gi",
+                               "2026.05.18.13__require_project_local_task_manager_api_endpoints",
+                               "2026.05.18.2__add_project_testing_strategy",
+                               "2026.05.18.3__number_commit_language_selection",
+                               "2026.05.18.4__add_gi_git_finish_commands",
+                               "2026.05.18.5__add_task_manager_plans_skill",
+                               "2026.05.18.6__prompt_for_task_manager_after_update",
+                               "2026.05.18.7__add_task_manager_post_plan_command",
+                               "2026.05.18.8__add_worknest_sprint_workflow",
+                               "2026.05.18.9__add_gi_restore_context_aliases",
+                               "2026.05.18.14__make_instruction_kit_metadata_recording_explicit"
                            ],
-    "last_update_check_at":  "2026-05-17T14:10:49+03:00"
+    "last_update_check_at":  "2026-05-18T23:32:06+03:00"
 }

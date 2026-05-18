@@ -1,4 +1,4 @@
-# Agent Working Agreements — chatgpt-web-bot
+# Agent Working Agreements - chatgpt-web-bot
 
 ## Scope
 
@@ -19,11 +19,12 @@
 - Never commit `.env`, `node_modules/`, `src/debug/`, `logs/`, `chrome-debug-profile/`, or `pw-profile/`.
 - Follow `tools/project-memory/git-preferences.json` for commit-message languages when the user explicitly asks the agent to commit.
 - Keep English as the primary commit-message language. Do not infer extra commit-message languages from the user's UI language or message language.
-- If the user asks to choose commit-message languages without naming them, ask with a concise Markdown checklist:
-  - show `English` as selected and primary;
+- If the user asks to choose commit-message languages without naming them, ask with a concise numbered Markdown checklist:
+  - number every option;
+  - show `English` as selected, primary, required, and not removable;
   - mark currently enabled additional languages as selected;
   - include `Russian`, `Spanish`, `German`, and `French`;
-  - ask the user to reply with language names or numbers.
+  - ask the user to reply with numbers or language names.
 - If the user names commit-message languages explicitly, update `tools/project-memory/git-preferences.json` directly and summarize the new setting.
 - Prefer `git diff --stat` and targeted `Select-String` over full `git diff`.
 
@@ -54,15 +55,24 @@
 - Treat that shared folder as a source used for copying local files, not as a live dependency, package, submodule, symlink, or runtime reference.
 - Check accepted updates with `.\tools\check-instruction-kit-updates.ps1`.
 - Treat short chat commands that start with `gi` as shared instruction-kit commands for `D:\AI\general-instructions`, not as `git`.
+- `gi` is the only short command prefix for this copied instruction kit; do not rename it to `GAI` or add another short alias.
+- Treat the instruction kit as a token-economy and RAG-startup layer: restore only task-relevant context from local instructions, handoff summaries, targeted searches, accepted migrations, and project memory.
 - Run `gi ...` commands against the current project root. Do not switch to another repository, the shared instruction library, or a path from an older task unless the user explicitly asks.
 - If the current project has no instruction-kit metadata, report that for the current project and ask what path or init action the user wants.
 - After completing a `gi` command, summarize only that instruction-kit command's result and stop. Do not automatically resume older product tasks unless the user explicitly asks to continue.
-- A successful `gi обновить` / `gi обновись` is an explicit request to commit and push only the resulting instruction-kit update files when the current project is a git repository with a configured remote. If git or a remote is unavailable, apply/check the update anyway and report that commit/push was skipped.
-- On `gi summary` or `gi саммари`, create `tools/summary/` if needed and write a new concise handoff file named `YYYY-MM-DD_HH-mm-ss_AGENT_WORK_SUMMARY.md` with current state, changes, commands, verification, caveats, next steps, and git status.
+- A successful `gi obnovit` / `gi obnovis` / `gi update` is an explicit request to commit and push only the resulting instruction-kit update files when the current project is a git repository with a configured remote. If git or a remote is unavailable, apply/check the update anyway and report that commit/push was skipped.
+- On `gi summary` / `gi sammari`, create `tools/summary/` if needed and write a new concise handoff file named `YYYY-MM-DD_HH-mm-ss_AGENT_WORK_SUMMARY.md` with current state, changes, commands, verification, caveats, next steps, and git status.
+- On `gi start` / `gi restore` and Russian restore aliases, restore context from local instructions, the latest handoff summary, and `tools/agent-start.ps1`; then ask what to do next.
+- On `gi git summary` and Russian git-summary aliases, summarize the latest commit metadata, changed files, compact stats, inferred purpose, and risks without printing the full diff or changing files.
+- On `gi test plan` and Russian test-plan aliases, inspect project-local verification options and produce a compact plan; do not run checks by default.
+- On `gi commit`, commit only scoped current changes. On `gi commit push` / `gi finish`, commit scoped current changes and push. On `gi push only`, push existing commits without creating a new commit.
+- For `gi tm`, `gi post plan`, `gi start sprint`, and Russian aliases, use only project-local task-manager configuration from `tools/project-memory/task-managers.json`. Ask before enabling a manager, require a real project-specific API `base_url`, keep secrets out of config, and verify workflow capabilities before sending work.
 - Instruction-kit refresh is idempotent: bootstrap/init first only when `tools/project-memory/instruction-kit.json` is missing; otherwise apply only pending accepted migrations.
 - Read only accepted release artifacts for update checks: `VERSION.md`, `CHANGELOG.md`, `INDEX.md`, and relevant files under `migrations/`.
 - Do not read the shared library `updates/` folder during project startup, bootstrap, or instruction-kit update checks.
-- When this project reveals a reusable improvement, write a dated recommendation to the shared library's `updates/` folder only when explicitly working on instruction maintenance.
+- This project can be an experience source for `gi`: capture reusable workflows, repeated failure patterns, token-saving tactics, startup retrieval improvements, and instruction improvements as reviewable recommendations only.
+- When this project reveals a reusable improvement, write a dated recommendation to the shared library's `updates/` folder only when explicitly working on instruction maintenance. Otherwise use a local fallback such as `tools/project-memory/instruction-updates/`.
+- Recommendations must include the observed problem, proposed reusable rule or artifact, evidence paths or commands, expected benefit, risks, and privacy review. Do not include secrets, credentials, private user data, production data, or unnecessary project-specific details.
 
 ## Verification
 

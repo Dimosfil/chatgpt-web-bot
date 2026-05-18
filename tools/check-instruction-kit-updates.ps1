@@ -1,6 +1,7 @@
 param(
     [string]$InstructionKitPath = "tools/project-memory/instruction-kit.json",
     [string]$SharedLibraryPath = "",
+    [switch]$RecordApplied,
     [switch]$Apply
 )
 
@@ -119,15 +120,23 @@ Write-Host ""
 Write-Host "Pending instruction migrations:"
 $pending | ForEach-Object { Write-Host "- $($_.Name)" }
 
-if (-not $Apply) {
+if ($Apply) {
     Write-Host ""
-    Write-Host "Review CHANGELOG.md and run with -Apply when ready."
-    exit 0
+    Write-Host "-Apply is intentionally disabled because it can mark migrations applied before file changes exist."
+    Write-Host "Have an agent apply the pending migration instructions first."
+    Write-Host "After verifying the file changes, run with -RecordApplied to update metadata."
+    exit 1
 }
 
 Write-Host ""
-Write-Host "This script records migration metadata only."
-Write-Host "Apply each migration's file changes with an agent following patterns/INSTRUCTION_KIT_MIGRATIONS.md."
+if (-not $RecordApplied) {
+    Write-Host "Review CHANGELOG.md and have an agent apply each pending migration's file changes."
+    Write-Host "After verifying the file changes, run with -RecordApplied to update metadata."
+    exit 0
+}
+
+Write-Host "Recording migration metadata only after file changes were applied and verified."
+Write-Host "If file changes are not complete, stop now and do not record migrations as applied."
 
 $newApplied = @($applied)
 foreach ($migration in $pending) {
