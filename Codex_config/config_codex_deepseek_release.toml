@@ -1,0 +1,8 @@
+model = "deepseek/deepseek-v4-pro"
+model_provider = "chatgpt-web-bot"
+
+[model_providers.chatgpt-web-bot]
+name = "chatgpt-web-bot DeepSeek Gateway"
+base_url = "http://127.0.0.1:3999/v1"
+env_key = "OPENCLAW_API_KEY"
+wire_api = "responses"

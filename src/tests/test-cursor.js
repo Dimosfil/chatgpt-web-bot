@@ -2,7 +2,7 @@
  * Тест Cursor + DeepSeek связки.
  *
  * Проверяет:
- * 1. Список моделей — должна быть модель 'cursor'
+ * 1. Список моделей — должны быть Cursor/custom и OpenAI-compatible aliases
  * 2. Простой chat completions — без tools
  * 3. Chat completions с tools — DeepSeek должен уметь tool_calls
  * 4. Health-check
@@ -77,13 +77,15 @@ function get(path) {
   const modelsRes = await get('/v1/models');
   const hasModels = modelsRes.body?.object === 'list' && Array.isArray(modelsRes.body.data);
   check('GET /v1/models returns list', hasModels);
-  const hasCursor = modelsRes.body?.data?.find((m) => m.id === 'cursor');
-  check('Model "cursor" is in the list', !!hasCursor);
+  const hasCursor = modelsRes.body?.data?.find((m) => m.id === 'custom_cursor');
+  check('Model "custom_cursor" is in the list', !!hasCursor);
+  const hasOpenAiAlias = modelsRes.body?.data?.find((m) => m.id === 'gpt-5.4');
+  check('Model "gpt-5.4" is in the list', !!hasOpenAiAlias);
 
   // 3. Simple chat
   console.log('\n=== Test 3: Cursor simple chat ===');
   const simpleRes = await post('/v1/chat/completions', {
-    model: 'cursor',
+    model: 'gpt-5.4',
     messages: [
       { role: 'user', content: 'Hello! Just say "ok" and nothing else.' }
     ]
@@ -91,11 +93,12 @@ function get(path) {
   check('POST /v1/chat/completions 200', simpleRes.status === 200);
   const simpleContent = simpleRes.body?.choices?.[0]?.message?.content;
   check('Response has content', typeof simpleContent === 'string' && simpleContent.length > 0, `content: "${simpleContent?.slice(0, 50)}"`);
+  check('Response does not expose reasoning_content', simpleRes.body?.choices?.[0]?.message?.reasoning_content === undefined);
 
   // 4. Chat with tools
   console.log('\n=== Test 4: Cursor chat with tools ===');
   const toolRes = await post('/v1/chat/completions', {
-    model: 'cursor',
+    model: 'custom_cursor',
     messages: [
       { role: 'user', content: 'What is 2+2? Use the calculator tool.' }
     ],
@@ -122,7 +125,7 @@ function get(path) {
   // 5. Cursor + /v1/responses — должно вернуть 400
   console.log('\n=== Test 5: Cursor /v1/responses rejected ===');
   const responsesRes = await post('/v1/responses', {
-    model: 'cursor',
+    model: 'custom_cursor',
     input: 'Hello'
   });
   check('POST /v1/responses rejected for Cursor', responsesRes.status === 400);

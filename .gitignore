@@ -6,6 +6,7 @@
 /logs
 /src/debug
 /src/logs
+/dist
 
 # Local/generated AI-agent memory and runtime noise
 tools/project-memory/*.sqlite

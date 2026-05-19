@@ -1,3 +1,27 @@
+const INLINE_IMAGE_NOTICE = '[Inline image omitted: DeepSeek chat completions accepts text-only messages in this gateway. Do not call local image tools unless the user provided an explicit filesystem path.]';
+
+function isInlineImagePart(part) {
+  if (!part || typeof part !== 'object') return false;
+  if (part.type === 'input_image' || part.type === 'image_url') return true;
+  return Boolean(part.image_url);
+}
+
+function hasInlineImagesInContent(content) {
+  return Array.isArray(content) && content.some(isInlineImagePart);
+}
+
+function hasInlineImages(body) {
+  const containers = [];
+  if (Array.isArray(body.messages)) containers.push(...body.messages);
+  if (Array.isArray(body.input)) containers.push(...body.input);
+
+  return containers.some((item) => {
+    if (!item || typeof item !== 'object') return false;
+    if (isInlineImagePart(item)) return true;
+    return hasInlineImagesInContent(item.content);
+  });
+}
+
 function textFromContent(content) {
   if (typeof content === 'string') return content;
   if (!Array.isArray(content)) return '';
@@ -5,6 +29,7 @@ function textFromContent(content) {
   return content
     .map(part => {
       if (typeof part === 'string') return part;
+      if (isInlineImagePart(part)) return INLINE_IMAGE_NOTICE;
       return part.text || part.content || part.input_text || part.output_text || '';
     })
     .filter(Boolean)
@@ -15,6 +40,20 @@ function normalizeRole(role) {
   if (role === 'developer') return 'system';
   if (role === 'function') return 'tool';
   return role || 'user';
+}
+
+function normalizeToolCall(call, fallbackId) {
+  const fn = call?.function || {};
+  const args = fn.arguments ?? call?.arguments ?? {};
+
+  return {
+    id: call?.id || fallbackId,
+    type: 'function',
+    function: {
+      name: fn.name || call?.name || '',
+      arguments: typeof args === 'string' ? args : JSON.stringify(args || {})
+    }
+  };
 }
 
 function normalizeParameters(parameters) {
@@ -36,13 +75,74 @@ function normalizeParameters(parameters) {
 
 function normalizeChatMessages(body) {
   const messages = Array.isArray(body.messages)
-    ? body.messages.map(message => ({
-      role: normalizeRole(message.role),
-      content: textFromContent(message.content)
-    }))
+    ? normalizeOpenAiChatMessages(body.messages)
     : responsesInputToMessages(body.input);
 
   return normalizeDeepSeekToolMessagePairs(messages);
+}
+
+function normalizeOpenAiChatMessages(messages) {
+  const normalized = [];
+  const lastToolCallIdByName = new Map();
+
+  messages.forEach((message, index) => {
+    if (!message || typeof message !== 'object') return;
+
+    const role = normalizeRole(message.role);
+    const content = textFromContent(message.content);
+
+    if (role === 'assistant') {
+      const toolCalls = Array.isArray(message.tool_calls)
+        ? message.tool_calls.map((call, callIndex) => {
+          const normalizedCall = normalizeToolCall(call, call?.id || `call_${index}_${callIndex}`);
+          if (normalizedCall.function.name) {
+            lastToolCallIdByName.set(normalizedCall.function.name, normalizedCall.id);
+          }
+          return normalizedCall;
+        })
+        : [];
+
+      if (!toolCalls.length && message.function_call) {
+        const normalizedCall = normalizeToolCall(
+          message.function_call,
+          message.function_call.id || `call_${index}_0`
+        );
+        if (normalizedCall.function.name) {
+          lastToolCallIdByName.set(normalizedCall.function.name, normalizedCall.id);
+        }
+        toolCalls.push(normalizedCall);
+      }
+
+      if (toolCalls.length) {
+        normalized.push({
+          role,
+          content: content || null,
+          tool_calls: toolCalls
+        });
+        return;
+      }
+
+      normalized.push({ role, content });
+      return;
+    }
+
+    if (role === 'tool') {
+      const toolCallId = message.tool_call_id
+        || lastToolCallIdByName.get(message.name)
+        || message.id;
+
+      normalized.push({
+        role,
+        tool_call_id: toolCallId,
+        content
+      });
+      return;
+    }
+
+    normalized.push({ role, content });
+  });
+
+  return normalized;
 }
 
 function normalizeDeepSeekToolMessagePairs(messages) {
@@ -141,10 +241,13 @@ function responsesInputToMessages(input) {
   return messages;
 }
 
-function normalizeTools(tools) {
+function normalizeTools(tools, options = {}) {
+  const omitNames = new Set(options.omitNames || []);
+
   return (tools || [])
     .map(tool => {
       if (tool?.type === 'function' && tool.function) {
+        if (omitNames.has(tool.function.name)) return null;
         return {
           ...tool,
           function: {
@@ -154,6 +257,7 @@ function normalizeTools(tools) {
         };
       }
       if (tool?.name) {
+        if (omitNames.has(tool.name)) return null;
         return {
           type: 'function',
           function: {
@@ -198,13 +302,23 @@ function resolveThinking(body, model) {
 
 function buildDeepSeekChatRequest(body, { stream = body.stream === true } = {}) {
   const model = resolveDeepSeekModel(body);
+  const containsInlineImages = hasInlineImages(body);
   const payload = {
     model,
     messages: normalizeChatMessages(body),
     stream
   };
 
-  const tools = normalizeTools(body.tools || body.functions);
+  if (containsInlineImages) {
+    payload.messages.unshift({
+      role: 'system',
+      content: 'The current request includes inline image data, but this DeepSeek gateway can only forward text content. Explain this limitation briefly if the user asks about the image. Do not call view_image for attached inline images; use image tools only when the user provides a concrete local image file path.'
+    });
+  }
+
+  const tools = containsInlineImages
+    ? []
+    : normalizeTools(body.tools || body.functions);
   if (tools.length > 0) {
     payload.tools = tools;
     if (body.tool_choice) payload.tool_choice = body.tool_choice;
@@ -222,10 +336,14 @@ function buildDeepSeekChatRequest(body, { stream = body.stream === true } = {}) 
 
 module.exports = {
   buildDeepSeekChatRequest,
+  hasInlineImages,
+  hasInlineImagesInContent,
   normalizeChatMessages,
   normalizeDeepSeekToolMessagePairs,
+  normalizeOpenAiChatMessages,
   normalizeParameters,
   normalizeRole,
+  normalizeToolCall,
   normalizeTools,
   resolveDeepSeekModel,
   resolveThinking,

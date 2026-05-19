@@ -18,7 +18,7 @@ function isCursorRequest(req, body) {
   if (userAgent.includes(CURSOR_USER_AGENT)) return true;
 
   const model = String(body?.model || '').toLowerCase();
-  if (model.startsWith('cursor/') || model === 'cursor') return true;
+  if (model.startsWith('cursor/') || model === 'cursor' || model === 'custom_cursor') return true;
 
   return false;
 }

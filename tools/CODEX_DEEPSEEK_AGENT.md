@@ -25,7 +25,7 @@ CHATGPT_WEB_BACKEND=deepseek
 
 DEEPSEEK_API_KEY=sk-...
 DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_MODEL=deepseek-v4-pro
 DEEPSEEK_TIMEOUT=120000
 ```
 
@@ -37,7 +37,7 @@ chat responses.
 Codex should point to the local gateway, not directly to DeepSeek:
 
 ```toml
-model = "deepseek/deepseek-chat"
+model = "deepseek/deepseek-v4-pro"
 model_provider = "chatgpt-web-bot"
 
 [model_providers.chatgpt-web-bot]
@@ -78,13 +78,13 @@ curl.exe -s http://127.0.0.1:3999/health
 curl.exe -s http://127.0.0.1:3999/v1/models
 ```
 
-Expected `/v1/models` includes `deepseek-chat`.
+Expected `/v1/models` includes `deepseek-v4-pro`.
 
 Then test a Codex-style Responses API call:
 
 ```powershell
 $body = @{
-  model = "deepseek/deepseek-chat"
+  model = "deepseek/deepseek-v4-pro"
   input = "Reply with one word: ok"
   stream = $false
 } | ConvertTo-Json -Depth 8
@@ -101,7 +101,7 @@ If testing Chat Completions:
 
 ```powershell
 $body = @{
-  model = "deepseek-chat"
+  model = "deepseek-v4-pro"
   messages = @(@{ role = "user"; content = "Reply with one word: ok" })
   stream = $false
 } | ConvertTo-Json -Depth 8
@@ -128,7 +128,7 @@ Get-Content .\src\debug\payload.log -Tail 10
 ## Common Failures
 
 - `DEEPSEEK_API_KEY` is empty: fill `.env`, restart server, retest.
-- `/v1/models` lacks `deepseek-chat`: check `CHATGPT_WEB_BACKEND=deepseek` and
+- `/v1/models` lacks `deepseek-v4-pro`: check `CHATGPT_WEB_BACKEND=deepseek` and
   restart the server.
 - Codex says unauthorized: set the client-side env var named by `env_key`
   (`OPENCLAW_API_KEY`) to any non-empty value, and keep the real key in `.env`.

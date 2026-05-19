@@ -60,10 +60,28 @@ function modelsList() {
       owned_by: 'chatgpt-web-bot'
     },
     {
-      id: 'cursor',
+      id: 'custom_cursor',
       object: 'model',
       created: now,
       owned_by: 'cursor'
+    },
+    {
+      id: 'gpt-5.4',
+      object: 'model',
+      created: now,
+      owned_by: 'openai'
+    },
+    {
+      id: 'gpt-5.4-mini',
+      object: 'model',
+      created: now,
+      owned_by: 'openai'
+    },
+    {
+      id: 'gpt-4o',
+      object: 'model',
+      created: now,
+      owned_by: 'openai'
     }
   ];
 

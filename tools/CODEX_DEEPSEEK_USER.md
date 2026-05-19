@@ -17,7 +17,7 @@ Set:
 CHATGPT_WEB_BACKEND=deepseek
 DEEPSEEK_API_KEY=sk-your-real-key-here
 DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_MODEL=deepseek-v4-pro
 DEEPSEEK_TIMEOUT=120000
 ```
 
@@ -49,14 +49,14 @@ curl.exe -s http://127.0.0.1:3999/v1/models
 Good signs:
 
 - `/health` says `running`
-- `/v1/models` shows `deepseek-chat`
+- `/v1/models` shows `deepseek-v4-pro`
 
 ## 4. Point Codex to the Gateway
 
 Codex should use the local server as an OpenAI-compatible provider:
 
 ```toml
-model = "deepseek/deepseek-chat"
+model = "deepseek/deepseek-v4-pro"
 model_provider = "chatgpt-web-bot"
 
 [model_providers.chatgpt-web-bot]
@@ -79,7 +79,7 @@ DeepSeek key stays in `D:\AI\chatgpt-web-bot\.env`.
 
 ```powershell
 $body = @{
-  model = "deepseek/deepseek-chat"
+  model = "deepseek/deepseek-v4-pro"
   input = "Reply with one word: ok"
   stream = $false
 } | ConvertTo-Json -Depth 8

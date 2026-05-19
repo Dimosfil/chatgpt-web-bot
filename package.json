@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "check": "node --check src/server.js && node --check src/core/openaiResponse.js && node --check src/handlers/router.js && node --check src/handlers/handleCodexFullFeature.js && node --check src/handlers/handleDeepSeekGateway.js && node --check src/strategies/deepseekRequestBuilder.js && node --check src/strategies/llm.deepseek.js",
+    "test:cursor": "node src/tests/test-cursor.js",
+    "test:deepseek-builder": "node src/tests/test-deepseek-builder.js",
+    "test:cursor-builder": "node src/tests/test-cursor-builder.js"
   },
   "keywords": [],
   "author": "",

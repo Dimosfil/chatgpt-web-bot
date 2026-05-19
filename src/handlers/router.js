@@ -38,7 +38,7 @@ function createRequestHandler() {
       res.writeHead(204, {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-cursor-client, x-cursor-version, x-client'
       });
       return res.end();
     }
