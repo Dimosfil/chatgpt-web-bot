@@ -31,10 +31,14 @@
 ## Context Hygiene
 
 - Do not read large files in full by default, including lockfiles, logs, generated files, and build artifacts.
+- Treat the current project root as the default filesystem boundary. Do not inspect other project folders, nested checkouts, vendored source trees, user-home app data, IDE/browser profiles, shell history, telemetry, or application databases unless the user gives an explicit concrete path and action.
+- Read local instructions, README/manifests, and config entry points first. Use broad recursive scans only after targeted search fails or the task clearly needs repository-wide inventory.
 - Search for specific symbols, paths, errors, or patterns before broad repository scans.
 - Do not print large logs. Prefer `Get-Content -Tail` and targeted error searches.
 - Do not produce broad artifacts or run full check matrices unless the user explicitly asks for that scope.
 - For web UI checks, assume the user will inspect manually unless they ask for screenshots or visual inspection.
+- Keep progress updates phase-level and concise. Do not duplicate automatic tool counters or narrate every command.
+- Optimize for smaller total live context: prefer compact handoffs, relevant file slices, targeted searches, and new sessions for unrelated tasks.
 
 ## Editing
 
@@ -42,6 +46,7 @@
 - Avoid unrelated formatting churn.
 - Add comments only when they clarify non-obvious behavior.
 - Reread edited files after changes.
+- Treat screenshots, logs, pasted errors, or other bug evidence as analysis-first requests. Explain the likely issue and ask what action the user wants before editing unless the user explicitly asks for a fix.
 
 ## Task Planning
 
@@ -65,19 +70,24 @@
 - On `gi start` / `gi restore` and Russian restore aliases, restore context from local instructions, the latest handoff summary, and `tools/agent-start.ps1`; then ask what to do next.
 - On `gi git summary` and Russian git-summary aliases, summarize the latest commit metadata, changed files, compact stats, inferred purpose, and risks without printing the full diff or changing files.
 - On `gi test plan` and Russian test-plan aliases, inspect project-local verification options and produce a compact plan; do not run checks by default.
+- On `gi pull` and Russian pull aliases, fetch and pull only the current branch from its configured upstream after inspecting status, current branch, and upstream. Stop on unsafe local changes, conflicts, missing git/upstream, or ambiguous conflict resolution.
 - On `gi commit`, commit only scoped current changes. On `gi commit push` / `gi finish`, commit scoped current changes and push. On `gi push only`, push existing commits without creating a new commit.
-- For `gi tm`, `gi post plan`, `gi start sprint`, and Russian aliases, use only project-local task-manager configuration from `tools/project-memory/task-managers.json`. Ask before enabling a manager, require a real project-specific API `base_url`, keep secrets out of config, and verify workflow capabilities before sending work.
+- For `gi tm`, `gi post plan`, `gi start sprint`, `gi manager test`, and Russian aliases, use only project-local task-manager configuration from `tools/project-memory/task-managers.json`. Ask before enabling a manager, require a real project-specific API `base_url`, keep secrets out of config, and verify workflow capabilities before sending work or disposable lifecycle-test tasks.
+- Treat task managers as queues and lifecycle metadata stores, not as the worker performing project work. The agent implements and verifies; the manager records, orders, assigns, and tracks work state.
+- If task-manager intake accepts single-task or sprint-plan payloads, require executable lifecycle identifiers, reject unsupported payloads clearly, or document them as intake-only. Do not treat raw intake receipts as executable work.
 - Instruction-kit refresh is idempotent: bootstrap/init first only when `tools/project-memory/instruction-kit.json` is missing; otherwise apply only pending accepted migrations.
 - Read only accepted release artifacts for update checks: `VERSION.md`, `CHANGELOG.md`, `INDEX.md`, and relevant files under `migrations/`.
 - Do not read the shared library `updates/` folder during project startup, bootstrap, or instruction-kit update checks.
 - This project can be an experience source for `gi`: capture reusable workflows, repeated failure patterns, token-saving tactics, startup retrieval improvements, and instruction improvements as reviewable recommendations only.
 - When this project reveals a reusable improvement, write a dated recommendation to the shared library's `updates/` folder only when explicitly working on instruction maintenance. Otherwise use a local fallback such as `tools/project-memory/instruction-updates/`.
 - Recommendations must include the observed problem, proposed reusable rule or artifact, evidence paths or commands, expected benefit, risks, and privacy review. Do not include secrets, credentials, private user data, production data, or unnecessary project-specific details.
+- Treat `gi system language` and Russian system-language aliases as project agent working-language commands stored in `tools/project-memory/system-preferences.json`. This setting is separate from commit-message language preferences and applies only to user-facing agent messages.
 
 ## Verification
 
 - Run the fastest relevant check first.
 - If changing server logic, restart the server only when needed, send a test request, and inspect log tails.
+- After frontend, backend, API, or full-stack feature changes, restart the affected local runtime when run instructions provide a restart command or hot reload is uncertain; refresh the client/API caller before verification and mention skipped restarts.
 - Record checks run and failures in the handoff summary after meaningful work.
 
 ## Processes

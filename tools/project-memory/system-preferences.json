@@ -1,0 +1,26 @@
+{
+  "agent_response_language": {
+    "mode": "match_user",
+    "language": "",
+    "available": [
+      "English",
+      "Russian",
+      "Spanish",
+      "German",
+      "French"
+    ],
+    "applies_to": [
+      "progress_updates",
+      "final_answers",
+      "clarifying_questions",
+      "user_facing_explanations"
+    ],
+    "exceptions": [
+      "code",
+      "commands",
+      "logs",
+      "quoted_text",
+      "user_requested_language"
+    ]
+  }
+}
