@@ -4,10 +4,11 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "check": "node --check src/server.js && node --check src/core/openaiResponse.js && node --check src/handlers/router.js && node --check src/handlers/handleCodexFullFeature.js && node --check src/handlers/handleDeepSeekGateway.js && node --check src/strategies/deepseekRequestBuilder.js && node --check src/strategies/llm.deepseek.js",
+    "check": "node --check src/server.js && node --check src/core/openaiResponse.js && node --check src/handlers/router.js && node --check src/handlers/handleCodexFullFeature.js && node --check src/handlers/handleCodexOrchestrator.js && node --check src/handlers/handleDeepSeekGateway.js && node --check src/strategies/codexOrchestrator.js && node --check src/strategies/deepseekRequestBuilder.js && node --check src/strategies/llm.deepseek.js && node --check src/tests/test-codex-orchestrator.js",
     "test:cursor": "node src/tests/test-cursor.js",
     "test:deepseek-builder": "node src/tests/test-deepseek-builder.js",
-    "test:cursor-builder": "node src/tests/test-cursor-builder.js"
+    "test:cursor-builder": "node src/tests/test-cursor-builder.js",
+    "test:codex-orchestrator": "node src/tests/test-codex-orchestrator.js"
   },
   "keywords": [],
   "author": "",

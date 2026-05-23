@@ -78,7 +78,17 @@ function normalizeChatMessages(body) {
     ? normalizeOpenAiChatMessages(body.messages)
     : responsesInputToMessages(body.input);
 
-  return normalizeDeepSeekToolMessagePairs(messages);
+  const normalized = normalizeDeepSeekToolMessagePairs(messages);
+  const instructions = textFromContent(body.instructions);
+
+  if (instructions) {
+    normalized.unshift({
+      role: 'system',
+      content: instructions
+    });
+  }
+
+  return normalized;
 }
 
 function normalizeOpenAiChatMessages(messages) {

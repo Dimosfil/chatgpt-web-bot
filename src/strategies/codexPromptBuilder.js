@@ -114,10 +114,16 @@ function extractToolHistory(inputArray) {
  */
 function buildCodexPrompt(body) {
   const userPrompt = extractInput(body);
+  const instructions = extractInstructions(body.instructions);
   const tools = simplifyTools(body.tools || body.functions || []);
   const toolHistory = extractToolHistory(body.input);
 
   const parts = [];
+
+  if (instructions) {
+    parts.push('## System instructions');
+    parts.push(instructions);
+  }
 
   if (toolHistory) {
     parts.push('## Контекст предыдущих вызовов инструментов');
@@ -163,9 +169,33 @@ function buildCodexPrompt(body) {
   return parts.filter(Boolean).join('\n\n');
 }
 
+function extractInstructions(instructions) {
+  if (typeof instructions === 'string') return instructions.trim();
+  if (!Array.isArray(instructions)) return '';
+
+  return instructions
+    .map(item => {
+      if (typeof item === 'string') return item;
+      if (!item || typeof item !== 'object') return '';
+      if (typeof item.text === 'string') return item.text;
+      if (typeof item.content === 'string') return item.content;
+      if (Array.isArray(item.content)) {
+        return item.content
+          .map(part => part?.text || part?.content || '')
+          .filter(Boolean)
+          .join('\n');
+      }
+      return '';
+    })
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+}
+
 module.exports = {
   buildCodexPrompt,
   extractInput,
+  extractInstructions,
   simplifyTools,
   extractToolHistory
 };

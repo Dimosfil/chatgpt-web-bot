@@ -16,6 +16,10 @@ const {
   handleDeepSeekChat,
   handleDeepSeekResponses
 } = require('./handleDeepSeekGateway');
+const {
+  handleCodexOrchestrator,
+  shouldHandleCodexOrchestrator
+} = require('./handleCodexOrchestrator');
 const { handleCursorChat } = require('./handleCursorRequest');
 
 const AGENT_MODE = process.env.CHATGPT_WEB_AGENT_MODE === '1';
@@ -103,6 +107,10 @@ function createRequestHandler() {
 
     // ====== POST /v1/responses — для Codex с wire_api = "responses" ======
     if (urlPath === '/v1/responses') {
+      if (shouldHandleCodexOrchestrator(body)) {
+        return handleCodexOrchestrator(req, res, body, requestId, 'responses', DEFAULT_BACKEND);
+      }
+
       if (shouldUseDeepSeek(body)) {
         return handleDeepSeekResponses(req, res, body, requestId);
       }
@@ -115,6 +123,10 @@ function createRequestHandler() {
     const isCodex = body.input !== undefined;
 
     if (isCodex) {
+      if (shouldHandleCodexOrchestrator(body)) {
+        return handleCodexOrchestrator(req, res, body, requestId, 'chat', DEFAULT_BACKEND);
+      }
+
       if (shouldUseDeepSeek(body)) {
         return handleDeepSeekChat(req, res, body, requestId);
       }

@@ -14,6 +14,11 @@ generated outputs, secrets, credentials, or private production data.
 
 ## Tasks
 
+- [x] Add Codex Orchestrator mode.
+  Goal: make Codex requests pass through a project-aware orchestration layer before backend routing.
+  Steps: add a small orchestrator strategy, inject compact project/system guidance into Codex payloads, expose a model alias, update router routing, add focused tests, run syntax/check tests.
+  Risks: keep Cursor/OpenClaw behavior unchanged; do not require DeepSeek network calls for unit verification.
+
 - [!] Investigate Cursor custom model persistence.
   Goal: make the local `custom_cursor` model survive Cursor startup or clearly identify the current blocking storage source.
   Steps: inspect Cursor state keys, extend `tools/configure-cursor-deepseek.py` with diagnostics, switch stable BYOK path to real Cursor OpenAI model id `gpt-5.4`, add gateway aliases, block normal configure while Cursor is running, verify server model exposure and Cursor storage state.

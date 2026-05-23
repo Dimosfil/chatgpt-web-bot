@@ -60,6 +60,12 @@ function modelsList() {
       owned_by: 'chatgpt-web-bot'
     },
     {
+      id: 'codex-orchestrator',
+      object: 'model',
+      created: now,
+      owned_by: 'chatgpt-web-bot'
+    },
+    {
       id: 'custom_cursor',
       object: 'model',
       created: now,
